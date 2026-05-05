@@ -1,0 +1,2814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Wiki Vault v4 — Karpathy Method</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a0a; --bg-1:#0e0e0e; --bg-2:#131313; --bg-3:#181818;
+    --line:rgba(255,255,255,.06); --line-2:rgba(255,255,255,.10); --line-3:rgba(255,255,255,.16);
+    --ink:#ece9e2; --ink-2:#a8a59c; --ink-3:#67645c; --ink-4:#3e3c37;
+    --rust:#d97757; --rust-soft:rgba(217,119,87,.14);
+    --lime:#CCFF00; --lime-soft:rgba(204,255,0,.10);
+    --mono:'IBM Plex Mono',ui-monospace,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--rust);color:#000}
+  *{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.10) transparent}
+  *::-webkit-scrollbar{width:8px;height:8px}
+  *::-webkit-scrollbar-track{background:transparent}
+  *::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px;border:2px solid transparent;background-clip:padding-box}
+  *::-webkit-scrollbar-thumb:hover{background:rgba(217,119,87,.35);background-clip:padding-box;border:2px solid transparent}
+  *::-webkit-scrollbar-corner{background:transparent}
+  .mono{font-family:var(--mono);letter-spacing:.01em}
+  .micro{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  input,textarea{font:inherit;color:inherit;background:none;border:none;outline:none}
+
+  #app{display:grid;grid-template-columns:240px 1fr 220px;grid-template-rows:48px 1fr 24px;height:100vh}
+
+  /* topbar */
+  .topbar{grid-column:1/-1;display:grid;grid-template-columns:240px 1fr auto;align-items:center;border-bottom:1px solid var(--line);background:var(--bg);z-index:50}
+  .brand{display:flex;align-items:center;gap:10px;height:100%;padding:0 16px;border-right:1px solid var(--line)}
+  .brand .glyph{width:22px;height:22px;border:1px solid var(--rust);color:var(--rust);display:grid;place-items:center;font-family:var(--mono);font-size:11px}
+  .brand b{font-weight:600;letter-spacing:.02em}
+  .brand .v{color:var(--ink-3);font-family:var(--mono);font-size:10px;margin-left:6px}
+
+  .palette{display:flex;align-items:center;gap:10px;padding:0 14px}
+  .palette input{flex:1;height:32px;padding:0 12px;border:1px solid var(--line-2);background:var(--bg-1);font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .palette input:focus{border-color:var(--rust)}
+  .palette .kbd{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);padding:2px 6px}
+
+  .ops{display:flex;align-items:center;gap:6px;padding:0 14px}
+  .op{height:32px;padding:0 12px;border:1px solid var(--line-2);font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);transition:all .15s}
+  .op:hover{border-color:var(--rust);color:var(--ink)}
+  .op.primary{background:var(--rust);color:#000;border-color:var(--rust)}
+  .op.primary:hover{background:#e88a6a}
+
+  /* tree */
+  .tree{border-right:1px solid var(--line);background:var(--bg-1);overflow-y:auto;padding:12px 0}
+  .tree-section{padding:6px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+  .tree-section button{font-family:var(--mono);font-size:14px;color:var(--ink-3);width:18px;height:18px;line-height:1;border:1px solid var(--line-2)}
+  .tree-section button:hover{color:var(--rust);border-color:var(--rust)}
+  .tree-item{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 18px;font-family:var(--mono);font-size:12px;color:var(--ink-2);cursor:pointer;border-left:2px solid transparent}
+  .tree-item:hover{background:var(--bg-2);color:var(--ink)}
+  .tree-item.active{background:var(--bg-2);color:var(--rust);border-left-color:var(--rust)}
+  .tree-item .sub{color:var(--ink-3);font-size:10px;margin-left:auto}
+  .tree-item.anchor{color:var(--lime)}
+  .tree-empty{padding:8px 18px;color:var(--ink-3);font-family:var(--mono);font-size:11px;font-style:italic}
+
+  /* main */
+  .main{overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+  .main-header{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .main-header .crumb b{color:var(--ink);font-weight:500}
+  .main-header .actions{display:flex;gap:6px}
+  .main-header .actions button{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;color:var(--ink-3);border:1px solid var(--line-2)}
+  .main-header .actions button:hover{color:var(--rust);border-color:var(--rust)}
+  .main-content{flex:1;overflow-y:auto;padding:32px 56px}
+
+  /* markdown */
+  .md{max-width:720px;font-size:14px;line-height:1.55;color:var(--ink)}
+  .md h1{font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.25;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line-2)}
+  .md h2{font-size:17px;font-weight:600;line-height:1.3;margin-top:24px;margin-bottom:8px;color:var(--ink)}
+  .md h3{font-size:13px;font-weight:600;line-height:1.3;margin-top:16px;margin-bottom:6px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono)}
+  .md p{margin-bottom:10px;line-height:1.55;color:var(--ink)}
+  .md ul,.md ol{margin:6px 0 10px 20px}
+  .md li{margin-bottom:3px;line-height:1.55}
+  .md code{font-family:var(--mono);font-size:12px;background:var(--bg-2);padding:1px 6px;border:1px solid var(--line);color:var(--rust)}
+  .md pre{font-family:var(--mono);font-size:12px;background:var(--bg-1);padding:14px;border:1px solid var(--line);overflow-x:auto;margin:12px 0}
+  .md a.wikilink{color:var(--lime);text-decoration:none;border-bottom:1px dashed rgba(204,255,0,.4);cursor:pointer}
+  .md a.wikilink:hover{border-bottom-style:solid}
+  .md a.wikilink.broken{color:var(--ink-3);border-bottom-color:var(--ink-4)}
+  .md blockquote{border-left:2px solid var(--rust);padding-left:14px;color:var(--ink-2);margin:12px 0;font-style:italic}
+
+  /* editor textarea */
+  .editor{width:100%;min-height:600px;background:var(--bg-1);border:1px solid var(--line-2);padding:18px;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--ink);resize:vertical}
+  .editor:focus{border-color:var(--rust)}
+
+  /* page meta strip */
+  .meta{display:flex;gap:14px;flex-wrap:wrap;padding:10px 0 18px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line);margin-bottom:18px}
+  .meta b{color:var(--ink-2)}
+  .meta .pill{padding:2px 8px;border:1px solid var(--line-2);color:var(--ink-2)}
+  .meta .pill.draft{color:var(--rust);border-color:var(--rust)}
+  .meta .pill.tag{color:var(--lime);border-color:rgba(204,255,0,.4);cursor:pointer}
+  .meta .pill.tag:hover{background:var(--lime-soft)}
+
+  /* right rail */
+  .rail{border-left:1px solid var(--line);background:var(--bg-1);overflow-y:auto;display:flex;flex-direction:column}
+  .rail-block{padding:14px;border-bottom:1px solid var(--line)}
+  .rail-block h4{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+  .rail-link{display:block;padding:4px 0;font-family:var(--mono);font-size:12px;color:var(--ink-2);cursor:pointer;border-bottom:1px solid transparent}
+  .rail-link:hover{color:var(--rust)}
+  .rail-empty{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-style:italic}
+
+  /* status bar */
+  .statusbar{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:0 14px;border-top:1px solid var(--line);background:var(--bg-1);font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+  .statusbar .dot{width:6px;height:6px;border-radius:50%;background:var(--ink-3)}
+  .statusbar .dot.ok{background:var(--lime)}
+  .statusbar .dot.warn{background:var(--rust)}
+  .statusbar .spacer{flex:1}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:100}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--bg-1);border:1px solid var(--line-3);width:560px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column}
+  .modal h3{font-size:14px;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:500}
+  .modal-body{padding:18px;flex:1;overflow-y:auto}
+  .modal-body label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 6px}
+  .modal-body label:first-child{margin-top:0}
+  .modal-body input,.modal-body textarea{width:100%;padding:10px;border:1px solid var(--line-2);background:var(--bg);font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .modal-body textarea{min-height:140px;resize:vertical;line-height:1.6}
+  .modal-body input:focus,.modal-body textarea:focus{border-color:var(--rust)}
+  .modal-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+  .modal-foot button{padding:8px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line-2);color:var(--ink-2)}
+  .modal-foot button:hover{border-color:var(--rust);color:var(--ink)}
+  .modal-foot button.primary{background:var(--rust);color:#000;border-color:var(--rust)}
+
+  /* command palette */
+  .palette-modal{position:fixed;top:80px;left:50%;transform:translateX(-50%);width:560px;max-width:90vw;background:var(--bg-1);border:1px solid var(--line-3);display:none;z-index:200}
+  .palette-modal.show{display:block}
+  .palette-modal input{width:100%;padding:14px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13px}
+  .palette-results{max-height:400px;overflow-y:auto}
+  .palette-result{padding:10px 18px;font-family:var(--mono);font-size:12px;color:var(--ink-2);cursor:pointer;border-bottom:1px solid var(--line)}
+  .palette-result:hover,.palette-result.selected{background:var(--bg-2);color:var(--rust)}
+  .palette-result .kind{color:var(--ink-3);font-size:10px;margin-right:8px}
+
+  /* toast */
+  .toast{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);background:var(--bg-2);border:1px solid var(--rust);padding:10px 18px;font-family:var(--mono);font-size:12px;color:var(--ink);opacity:0;transition:opacity .3s;pointer-events:none;z-index:300}
+  .toast.show{opacity:1}
+
+  /* big graph view (v3 murmuration port) */
+  .graph-wrap{position:relative;width:100%;background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.012) 0%, transparent 70%);overflow:hidden;border:1px solid var(--line)}
+  .graph-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);background-size:48px 48px;pointer-events:none}
+  #bigGraph{position:absolute;inset:0;width:100%;height:100%}
+  .graph-overlay{position:absolute;top:18px;left:18px;z-index:10;pointer-events:none}
+  .graph-overlay h2{font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3)}
+  .graph-overlay p{font-family:var(--sans);font-size:13px;color:var(--ink-2);margin-top:4px;max-width:380px}
+  .graph-stats{position:absolute;bottom:18px;left:18px;display:flex;gap:18px;z-index:10;pointer-events:none}
+  .gstat{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+  .gstat b{color:var(--ink);font-size:14px;font-weight:500;display:block;margin-bottom:2px;letter-spacing:0;text-transform:none}
+  .graph-controls{position:absolute;top:18px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:10}
+  .gctl{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--bg-2);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;font-family:var(--mono);font-size:13px}
+  .gctl:hover{border-color:var(--line-3);color:var(--ink)}
+  .legend{position:absolute;bottom:18px;right:18px;z-index:10;background:var(--bg-2);border:1px solid var(--line);padding:10px 12px;font-family:var(--mono);font-size:10px;max-height:180px;overflow-y:auto}
+  .legend-row{display:flex;align-items:center;gap:8px;color:var(--ink-3);padding:2px 0}
+  .legend-row .swatch{width:8px;height:8px;border-radius:50%}
+
+  /* ingest stages */
+  .stages{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:16px;border:1px solid var(--line-2)}
+  .stage{padding:9px 10px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:center;border-right:1px solid var(--line-2);background:var(--bg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stage:last-child{border-right:none}
+  .stage.active{background:var(--rust);color:#000}
+  .stage.done{color:var(--lime)}
+  .src-tabs{display:flex;gap:4px;margin-bottom:10px}
+  .src-tab{flex:1;min-width:0;padding:9px 8px;border:1px solid var(--line-2);font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--bg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .src-tab.active{border-color:var(--rust);color:var(--rust);background:var(--rust-soft)}
+  .src-tabs.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .src-tabs.grid-3 .src-tab{padding:10px 6px;font-size:10px;letter-spacing:.08em}
+
+  /* settings form rhythm */
+  .form-section{padding:14px 0;border-bottom:1px solid var(--line)}
+  .form-section:last-child{border-bottom:none}
+  .form-section:first-child{padding-top:0}
+  .form-row{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:center;margin-bottom:10px}
+  .form-row:last-child{margin-bottom:0}
+  .form-row > label{margin:0;font-size:10px}
+  .form-row > input,.form-row > select{margin:0}
+  .form-hint{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:6px;line-height:1.6}
+  .form-hint.lime{color:var(--lime)}
+  .form-hint code{background:var(--bg-2);padding:1px 5px;border:1px solid var(--line);color:var(--rust)}
+  .form-callout{font-family:var(--mono);font-size:11px;color:var(--ink-2);padding:10px 12px;background:var(--bg-2);border-left:2px solid var(--lime);margin-top:8px;line-height:1.6}
+  .drop{border:1px dashed var(--line-3);padding:24px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink-3);cursor:pointer;transition:all .15s}
+  .drop:hover,.drop.drag{border-color:var(--rust);color:var(--ink);background:var(--rust-soft)}
+  .fetched-meta{padding:10px;background:var(--bg-2);border-left:2px solid var(--lime);margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .fetched-meta b{color:var(--lime)}
+  .spinner{display:inline-block;width:10px;height:10px;border:1.5px solid var(--ink-3);border-top-color:var(--rust);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* answer panel */
+  .answer{margin-top:18px;padding:18px;background:var(--bg-1);border-left:2px solid var(--lime)}
+  .answer h4{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lime);margin-bottom:8px}
+  .answer .citations{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .answer .citations a{color:var(--rust);cursor:pointer;margin-right:8px}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="glyph">Ψ</div>
+      <b>AI Wiki Vault</b>
+      <span class="v">v4</span>
+    </div>
+    <div class="palette">
+      <input id="paletteTrigger" placeholder="Search vault — pages, sources, tags  (⌘K)" readonly />
+      <span class="kbd">⌘K</span>
+    </div>
+    <div class="ops">
+      <button class="op primary" id="opIngest">⊕ Ingest</button>
+      <button class="op" id="opQuery">? Query</button>
+      <button class="op" id="opLint">⌖ Lint</button>
+      <button class="op" id="opSync">↻ Sync</button>
+      <button class="op" id="opSettings" title="Settings">⚙</button>
+    </div>
+  </div>
+
+  <aside class="tree" id="tree"></aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div class="crumb mono" id="crumb">vault / <b>—</b></div>
+      <div class="actions" id="mainActions"></div>
+    </div>
+    <div class="main-content" id="mainContent"></div>
+  </main>
+
+  <aside class="rail" id="rail"></aside>
+
+  <div class="statusbar">
+    <span class="dot" id="syncDot"></span>
+    <span id="syncLabel">local only</span>
+    <span class="spacer"></span>
+    <span id="vaultStats">0 pages · 0 sources · 0 drafts</span>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Modal</h3>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<div class="palette-modal" id="paletteModal">
+  <input id="paletteInput" placeholder="Type to search…" />
+  <div class="palette-results" id="paletteResults"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   AI WIKI VAULT v4
+   Karpathy-method second brain. Flat vault. 3 ops. No silos.
+   Architecture: Vault + Storage adapter + LLM adapter + LinkResolver
+   + GraphProjection + view registry. See bottom of file for boot.
+============================================================ */
+
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48);
+const now = () => new Date().toISOString();
+const today = () => new Date().toISOString().slice(0,10);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); }
+
+/* ============================================================
+   DOMAIN TYPES
+============================================================ */
+const PAGE_TYPES = {
+  concept:   { folder:'concepts',  glyph:'◇', label:'Concepts',  order: 1 },
+  person:    { folder:'people',    glyph:'☻', label:'People',    order: 2 },
+  source:    { folder:'sources',   glyph:'⌖', label:'Sources',   order: 3 },
+  clip:      { folder:'clips',     glyph:'✂', label:'Clips',     order: 4 },
+  synthesis: { folder:'synthesis', glyph:'⌬', label:'Synthesis', order: 5 },
+  note:      { folder:'notes',     glyph:'✎', label:'Notes',     order: 6 },
+  anchor:    { folder:'anchors',   glyph:'▦', label:'Anchors',   order: 0 }
+};
+const CLIP_HOST_RE = /(twitter\.com|x\.com|threads\.net|linkedin\.com\/posts|mastodon|bsky\.app|reddit\.com\/r\/\w+\/comments)/i;
+function detectKind(url){ return url && CLIP_HOST_RE.test(url) ? 'clip' : (url ? 'source' : 'note'); }
+function clipHandle(url){
+  // x.com/JLawStock/status/... → JLawStock
+  const m = url && url.match(/(?:twitter\.com|x\.com)\/([^\/?#]+)/i);
+  return m ? m[1] : '';
+}
+
+const Page = {
+  create({title, md='', tags=[], sources=[], type='concept', status='curated'}){
+    const id = slug(title) || `page-${Date.now()}`;
+    const page = { id, title, type, tags, sources, status, md, updated: today() };
+    // Auto-tag with current ingest batch (set by IngestFlow.commit)
+    if (typeof Vault !== 'undefined' && Vault._currentBatchId) page.batch = Vault._currentBatchId;
+    return page;
+  }
+};
+const Source = {
+  create({title, url='', raw='', summary='', type='note'}){
+    const id = `src-${slug(title) || Date.now()}`;
+    return { id, title, url, raw, summary, type, ingested: now() };
+  }
+};
+const Draft = {
+  create({kind, target=null, content='', reasoning=''}){
+    return { id:`d-${Date.now()}-${Math.floor(Math.random()*1e4)}`, kind, target, content, reasoning, created: now() };
+  }
+};
+const LogEntry = {
+  create({op, summary}){ return { ts: now(), op, summary }; }
+};
+
+/* ============================================================
+   STORAGE ADAPTER (seam — swap for GitHubAdapter later)
+============================================================ */
+const LocalStorageAdapter = {
+  KEY: 'vault-v4',
+  saveErrors: 0,
+  load(){
+    try { const raw = localStorage.getItem(this.KEY); return raw ? JSON.parse(raw) : null; }
+    catch(e){
+      console.error('localStorage load failed:', e);
+      try { toast('⚠ Could not load vault — localStorage parse error'); } catch(_){}
+      return null;
+    }
+  },
+  save(state){
+    try {
+      localStorage.setItem(this.KEY, JSON.stringify(state));
+      if (this.saveErrors){
+        this.saveErrors = 0;
+        try { toast('✓ localStorage save recovered'); } catch(_){}
+      }
+    } catch(e){
+      this.saveErrors++;
+      console.error('localStorage save failed:', e);
+      // QuotaExceededError most common — vault too large for browser quota
+      const reason = /quota|exceeded/i.test(e.message) ? 'quota exceeded — export + clear or move to GitHub sync' : e.message.slice(0,80);
+      try { toast(`⚠ Save failed: ${reason}`); } catch(_){}
+    }
+  },
+  status(){ return { connected:false, label:'local only', kind:'local' }; }
+};
+
+/* ============================================================
+   GITHUB SYNC (Phase 3)
+   localStorage stays primary. GitHub = sync layer on top.
+   - Push debounced on every Vault.persist()
+   - Pull on boot + manual ↻ button
+   - Conflict policy: SHA-tracked. 409 → fetch fresh + merge by
+     newer .updated wins (pages), union (sources/drafts/log)
+   - Repo file: single vault.json blob at user-chosen path
+============================================================ */
+const GitHubSync = {
+  KEY: 'vault-v4-github',
+  config: {
+    owner: '', repo: '', token: '', branch: 'main', path: 'vault.json'
+  },
+  sha: null,
+  state: 'idle',          // idle | pulling | pushing | synced | offline | error
+  lastError: null,
+  _pushTimer: null,
+
+  load(){
+    try { const r = localStorage.getItem(this.KEY); if (r) Object.assign(this.config, JSON.parse(r)); } catch(e){}
+    try { this.sha = localStorage.getItem(this.KEY + '-sha') || null; } catch(e){}
+    return this.config;
+  },
+  save(){
+    localStorage.setItem(this.KEY, JSON.stringify(this.config));
+    if (this.sha) localStorage.setItem(this.KEY + '-sha', this.sha);
+    else localStorage.removeItem(this.KEY + '-sha');
+  },
+  configured(){
+    const c = this.config;
+    return !!(c.owner && c.repo && c.token);
+  },
+  enabled(){ return this.configured(); },
+
+  apiUrl(){
+    const c = this.config;
+    return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/${c.path.split('/').map(encodeURIComponent).join('/')}`;
+  },
+  headers(){
+    return {
+      'Authorization': `Bearer ${this.config.token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json'
+    };
+  },
+
+  setState(s, err){
+    this.state = s;
+    this.lastError = err || null;
+    Vault.refreshStats?.();
+  },
+
+  /* base64 helpers — UTF-8 safe */
+  _b64encode(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+    return btoa(bin);
+  },
+  _b64decode(b64){
+    const bin = atob(b64.replace(/\s/g, ''));
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  },
+
+  async pull(){
+    if (!this.configured()) throw new Error('GitHub not configured');
+    this.setState('pulling');
+    const res = await fetch(`${this.apiUrl()}?ref=${encodeURIComponent(this.config.branch)}`, { headers: this.headers() });
+    if (res.status === 404){
+      // Empty repo or vault.json doesn't exist yet
+      this.setState('synced');
+      return null;
+    }
+    if (res.status === 401) throw new Error('GitHub 401: bad token (check repo scope)');
+    if (!res.ok) throw new Error(`GitHub pull ${res.status}: ${(await res.text()).slice(0,200)}`);
+    const data = await res.json();
+    this.sha = data.sha;
+    this.save();
+    const json = this._b64decode(data.content);
+    this.setState('synced');
+    return JSON.parse(json);
+  },
+
+  async push(state, message){
+    if (!this.configured()) throw new Error('GitHub not configured');
+    this.setState('pushing');
+    const json = JSON.stringify(state, null, 2);
+    const content = this._b64encode(json);
+    const body = { message: message || `vault sync ${new Date().toISOString().slice(0,16)}`, content, branch: this.config.branch };
+    if (this.sha) body.sha = this.sha;
+    const res = await fetch(this.apiUrl(), { method:'PUT', headers: this.headers(), body: JSON.stringify(body) });
+
+    if (res.status === 409 || (res.status === 422 && this.sha)){
+      // SHA stale — fetch + merge + retry once
+      const remote = await this.pull();
+      const merged = this._merge(remote, state);
+      // Apply merged state back into Vault
+      Vault.state = merged;
+      try { storage.save(merged); } catch(e){}
+      Vault.refreshStats?.();
+      const json2 = JSON.stringify(merged, null, 2);
+      const body2 = { message: (message || 'vault sync') + ' (merged)', content: this._b64encode(json2), sha: this.sha, branch: this.config.branch };
+      const res2 = await fetch(this.apiUrl(), { method:'PUT', headers: this.headers(), body: JSON.stringify(body2) });
+      if (!res2.ok){
+        const t = await res2.text();
+        throw new Error(`GitHub merge push ${res2.status}: ${t.slice(0,200)}`);
+      }
+      const d2 = await res2.json();
+      this.sha = d2.content.sha;
+      this.save();
+      this.setState('synced');
+      return merged;
+    }
+    if (res.status === 401) throw new Error('GitHub 401: bad token');
+    if (!res.ok) throw new Error(`GitHub push ${res.status}: ${(await res.text()).slice(0,200)}`);
+    const data = await res.json();
+    this.sha = data.content.sha;
+    this.save();
+    this.setState('synced');
+    return state;
+  },
+
+  _merge(remote, local){
+    if (!remote) return local;
+    const out = JSON.parse(JSON.stringify(remote));
+    // pages — newer .updated wins
+    const lMap = Object.fromEntries((local.pages||[]).map(p=>[p.id,p]));
+    const rMap = Object.fromEntries((remote.pages||[]).map(p=>[p.id,p]));
+    const ids = new Set([...Object.keys(lMap), ...Object.keys(rMap)]);
+    out.pages = [...ids].map(id => {
+      const lp = lMap[id], rp = rMap[id];
+      if (!rp) return lp; if (!lp) return rp;
+      return (lp.updated || '') > (rp.updated || '') ? lp : rp;
+    });
+    // sources — union by id
+    const sMap = {};
+    [...(remote.sources||[]), ...(local.sources||[])].forEach(s => sMap[s.id] = s);
+    out.sources = Object.values(sMap);
+    // drafts — union by id
+    const dMap = {};
+    [...(remote.drafts||[]), ...(local.drafts||[])].forEach(d => dMap[d.id] = d);
+    out.drafts = Object.values(dMap);
+    // log — union by ts+op, sorted
+    const lkey = e => `${e.ts}::${e.op}`;
+    const lgMap = {};
+    [...(remote.log||[]), ...(local.log||[])].forEach(e => lgMap[lkey(e)] = e);
+    out.log = Object.values(lgMap).sort((a,b)=>a.ts.localeCompare(b.ts));
+    // ui — always local
+    out.ui = local.ui;
+    out.schemaVersion = Math.max(remote.schemaVersion||1, local.schemaVersion||1);
+    return out;
+  },
+
+  schedulePush(){
+    if (!this.configured()) return;
+    clearTimeout(this._pushTimer);
+    this._pushTimer = setTimeout(() => {
+      this.push(Vault.state).catch(e => {
+        console.warn('GitHub push failed:', e.message);
+        this.setState('error', e.message);
+      });
+    }, 1800);
+  },
+
+  async manualSync(){
+    if (!this.configured()){ throw new Error('GitHub not configured. Open Settings (⚙) → GitHub Sync.'); }
+    const remote = await this.pull();
+    if (!remote){
+      // First-time push
+      await this.push(Vault.state, 'initial vault commit');
+      return { pulled:false, pushed:true };
+    }
+    const merged = this._merge(remote, Vault.state);
+    Vault.state = merged;
+    storage.save(merged);
+    Vault.refreshStats?.();
+    await this.push(merged, 'manual sync');
+    render();
+    return { pulled:true, pushed:true };
+  },
+
+  status(){
+    if (!this.configured()) return { connected:false, label:'local only', kind:'local' };
+    const owner = this.config.owner, repo = this.config.repo;
+    const labels = {
+      idle:    `github · ${owner}/${repo}`,
+      pulling: `pulling…`,
+      pushing: `pushing…`,
+      synced:  `✓ synced · ${owner}/${repo}`,
+      offline: `offline`,
+      error:   `✗ ${this.lastError?.slice(0,40) || 'sync error'}`
+    };
+    return { connected: this.state==='synced' || this.state==='idle', label: labels[this.state] || labels.idle, kind:'github' };
+  }
+};
+
+let storage = LocalStorageAdapter;
+
+/* ============================================================
+   VAULT MODULE — single seam over state
+============================================================ */
+const Vault = {
+  state: null,
+
+  init(){
+    const loaded = storage.load();
+    this._wasEmpty = !loaded;
+    this.state = loaded ? this.migrate(loaded) : this.seed();
+    this.persist();
+  },
+
+  migrate(s){
+    if (!s.schemaVersion) s.schemaVersion = 1;
+    s.pages ||= []; s.sources ||= []; s.drafts ||= []; s.log ||= [];
+    s.batches ||= [];   // ingest batch records (for revert)
+    s.ui ||= { selectedPageId:null, activeView:'page' };
+    return s;
+  },
+
+  seed(){
+    const pages = [
+      Page.create({ title:'Welcome', type:'index', tags:['meta'], status:'curated',
+        md: `# Welcome\n\nThis vault uses the Karpathy LLM-wiki method.\n\n## Three operations\n\n- **Ingest** — paste a URL or text. The LLM reads it, creates a Source page, drafts updates to related pages, and appends to [[log]].\n- **Query** — ask a question. The LLM reads relevant pages and answers with citations. Save useful answers as synthesis pages.\n- **Lint** — periodic audit for orphans, broken links, missing tags.\n\n## Anchor pages\n\n- [[index]] — auto-generated catalog of all pages\n- [[log]] — append-only ingest and query history\n\n## Try\n\n1. Click **⊕ Ingest** in the top bar. Paste any text. See drafts appear.\n2. Click **? Query**. Ask "what is in this vault?".\n3. Open [[Karpathy LLM Wiki]] to see the method.` }),
+      Page.create({ title:'Karpathy LLM Wiki', type:'source', tags:['meta','method'], status:'curated',
+        sources:['src-karpathy-gist'],
+        md: `# Karpathy LLM Wiki\n\n## Summary\n\nA second-brain pattern where the wiki is a directory of LLM-generated markdown files. Knowledge is compiled once and kept current.\n\n## Three layers\n\n- **Raw sources** — immutable input (articles, PDFs, transcripts)\n- **Wiki** — markdown files: entity, concept, source, synthesis pages\n- **Schema** — config that drives the LLM (this vault uses frontmatter + an internal prompt)\n\n## Three operations\n\n- **Ingest** — read source, update 10–15 pages with summaries and cross-references\n- **Query** — answer questions with citations\n- **Lint** — audit for contradictions, orphans, gaps\n\n## Two anchors\n\n- [[index]] — catalog\n- [[log]] — chronological record\n\n## Why flat\n\nFolders force premature classification. Tags + wikilinks let the graph emerge.` }),
+    ];
+    const sources = [
+      Source.create({ title:'Karpathy LLM-wiki gist', url:'https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f', type:'url', summary:'Three-layer LLM-maintained wiki pattern.' })
+    ];
+    return {
+      schemaVersion: 1,
+      pages, sources,
+      drafts: [],
+      log: [ LogEntry.create({ op:'init', summary:'Vault initialized with seed pages.' }) ],
+      ui: { selectedPageId: pages[0].id, activeView:'page' }
+    };
+  },
+
+  persist(){
+    storage.save(this.state);
+    this.refreshStats();
+    if (GitHubSync.enabled()) GitHubSync.schedulePush();
+  },
+  refreshStats(){
+    const s = this.state;
+    const sd = Settings.data;
+    let label;
+    if (sd.provider==='mock') label = '⌘ mock';
+    else {
+      const preset = PROVIDER_PRESETS[sd.provider];
+      const m = (sd.model || '').split('/').pop().slice(0,28);
+      label = `${preset?.label || sd.provider} · ${m}`;
+    }
+    $('#vaultStats').textContent = `${s.pages.length} pages · ${s.sources.length} sources · ${label}`;
+    const gs = GitHubSync.enabled() ? GitHubSync.status() : storage.status();
+    $('#syncLabel').textContent = gs.label;
+    let cls = 'dot';
+    if (gs.kind === 'github'){
+      if (GitHubSync.state === 'synced' || GitHubSync.state === 'idle') cls += ' ok';
+      else if (GitHubSync.state === 'error') cls += ' warn';
+    } else {
+      const llmReady = sd.provider!=='mock' && (sd.apiKey || sd.provider==='ollama');
+      if (llmReady) cls += ' ok';
+    }
+    $('#syncDot').className = cls;
+  },
+
+  /* reads */
+  listPages(){ return this.state.pages; },
+  listSources(){ return this.state.sources; },
+  listDrafts(){ return this.state.drafts; },
+  listLog(){ return this.state.log; },
+  getPage(id){ return this.state.pages.find(p=>p.id===id) || null; },
+  getPageByTitle(title){ const t=title.toLowerCase().trim(); return this.state.pages.find(p=>p.title.toLowerCase()===t) || null; },
+  getSource(id){ return this.state.sources.find(s=>s.id===id) || null; },
+  allTags(){ const t=new Set(); this.state.pages.forEach(p=>p.tags.forEach(x=>t.add(x))); return [...t].sort(); },
+
+  /* writes (single seam) */
+  putPage(page){
+    const i = this.state.pages.findIndex(p=>p.id===page.id);
+    page.updated = today();
+    if (i>=0) this.state.pages[i] = page; else this.state.pages.push(page);
+    this.persist();
+    return page;
+  },
+  deletePage(id){
+    const page = this.getPage(id);
+    if (!page){ return { removed: 1, cascadedStubs: 0 }; }
+    const title = page.title;
+    const titleRe = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const stubFromMe = new RegExp(`(Created from|First mention via)\\s*\\[\\[${titleRe}\\]\\]`);
+
+    // Pass 1: collect stub pages created from this page (auto-cascade)
+    const stubIds = new Set();
+    this.state.pages.forEach(p => {
+      if (p.id === id) return;
+      if (p.status === 'draft' && stubFromMe.test(p.md || '')) stubIds.add(p.id);
+    });
+
+    // Pass 2: remove references on remaining pages
+    const removedIds = new Set([id, ...stubIds]);
+    const survivors = this.state.pages.filter(p => !removedIds.has(p.id));
+    survivors.forEach(p => {
+      const wikilinkRe = new RegExp(`\\[\\[${titleRe}\\]\\]`, 'g');
+      const mentionLineRe = new RegExp(`^\\s*-\\s*\\[\\[${titleRe}\\]\\][^\\n]*\\n?`, 'gm');
+      if (!wikilinkRe.test(p.md || '')) return;
+      // Remove bullet lines listing the deleted page
+      p.md = p.md.replace(mentionLineRe, '');
+      // Degrade remaining wikilinks to plain text
+      p.md = p.md.replace(new RegExp(`\\[\\[${titleRe}\\]\\]`, 'g'), title);
+      // Drop empty "Mentioned in" / "Links" / "People" / "Concepts" sections
+      p.md = p.md.replace(/##\s+(Mentioned in|Links|People|Concepts)\s*\n+(?=##|\s*$)/g, '');
+    });
+
+    this.state.pages = survivors;
+
+    // Drop sources orphaned by deletion (source had only this page referencing it)
+    const stillUsedSourceIds = new Set();
+    this.state.pages.forEach(p => (p.sources || []).forEach(sid => stillUsedSourceIds.add(sid)));
+    const removedSources = (page.sources || []).filter(sid => !stillUsedSourceIds.has(sid));
+    if (removedSources.length){
+      this.state.sources = this.state.sources.filter(s => !removedSources.includes(s.id));
+    }
+
+    if (removedIds.has(this.state.ui.selectedPageId)){
+      this.state.ui.selectedPageId = this.state.pages[0]?.id || null;
+    }
+    this.persist();
+    return { removed: 1, cascadedStubs: stubIds.size, removedSources: removedSources.length };
+  },
+  putSource(src){
+    const i = this.state.sources.findIndex(s=>s.id===src.id);
+    if (i>=0) this.state.sources[i] = src; else this.state.sources.push(src);
+    this.persist();
+    return src;
+  },
+  putDraft(d){ this.state.drafts.push(d); this.persist(); return d; },
+  removeDraft(id){ this.state.drafts = this.state.drafts.filter(d=>d.id!==id); this.persist(); },
+  appendLog(entry){ this.state.log.push(entry); this.persist(); },
+
+  /* batch ingest records — for "revert last ingest" */
+  recordBatch(b){ this.state.batches.push(b); this.persist(); return b; },
+  listBatches(){ return [...this.state.batches].reverse(); },
+  lastBatch(){ return this.state.batches[this.state.batches.length - 1] || null; },
+  revertBatch(batchId){
+    const b = this.state.batches.find(x => x.id === batchId);
+    if (!b) return { ok:false, reason:'batch not found' };
+
+    // Delete pages this batch created (skip if user has since edited & promoted them)
+    const deleted = [];
+    const kept = [];
+    b.created.forEach(pid => {
+      const p = this.getPage(pid);
+      if (!p) return;
+      if (p.batch === batchId){
+        // Cascade delete handles reference cleanup in survivors
+        this.deletePage(pid);
+        deleted.push(pid);
+      } else {
+        kept.push(pid);
+      }
+    });
+
+    // Strip "Mentioned in" lines this batch added to existing pages
+    if (b.sourceTitle){
+      const titleRe = b.sourceTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const stamp = new RegExp(`^\\s*-\\s*\\[\\[${titleRe}\\]\\]\\s*_\\([^)]+\\)_\\s*\\n?`, 'gm');
+      b.updated.forEach(pid => {
+        const p = this.getPage(pid);
+        if (!p) return;
+        p.md = (p.md || '').replace(stamp, '');
+        p.md = p.md.replace(/##\s+Mentioned in\s*\n+(?=##|\s*$)/g, '');
+        this.putPage(p);
+      });
+    }
+
+    // Drop the source record if no remaining page references it
+    if (b.sourceId){
+      const stillUsed = this.state.pages.some(p => (p.sources||[]).includes(b.sourceId));
+      if (!stillUsed){
+        this.state.sources = this.state.sources.filter(s => s.id !== b.sourceId);
+      }
+    }
+
+    // Remove batch record
+    this.state.batches = this.state.batches.filter(x => x.id !== batchId);
+    this.persist();
+    return { ok:true, deleted: deleted.length, kept: kept.length };
+  },
+
+  /* search */
+  search(query){
+    const q = query.toLowerCase().trim();
+    if (!q) return [];
+    const results = [];
+    this.state.pages.forEach(p => {
+      const inTitle = p.title.toLowerCase().includes(q);
+      const inBody = p.md.toLowerCase().includes(q);
+      const inTags = p.tags.some(t=>t.toLowerCase().includes(q));
+      if (inTitle || inBody || inTags) results.push({ kind:'page', id:p.id, label:p.title, hint: inTitle ? 'title' : inTags ? 'tag' : 'body' });
+    });
+    this.state.sources.forEach(s => {
+      if (s.title.toLowerCase().includes(q)) results.push({ kind:'source', id:s.id, label:s.title, hint:'source' });
+    });
+    this.allTags().forEach(t => {
+      if (t.includes(q)) results.push({ kind:'tag', id:t, label:`#${t}`, hint:'tag' });
+    });
+    return results.slice(0, 25);
+  }
+};
+
+/* ============================================================
+   LINK RESOLVER — derive links one place
+============================================================ */
+const LinkResolver = {
+  // explicit [[Title]] links in body
+  explicit(page){
+    if (!page) return [];
+    const ids = new Set();
+    [...(page.md||'').matchAll(/\[\[([^\]]+?)\]\]/g)].forEach(m => {
+      const target = Vault.getPageByTitle(m[1].trim());
+      if (target && target.id !== page.id) ids.add(target.id);
+    });
+    return [...ids];
+  },
+  // pages that link TO this one
+  backlinks(page){
+    if (!page) return [];
+    const me = page.title.toLowerCase();
+    return Vault.listPages().filter(other => {
+      if (other.id === page.id) return false;
+      return [...(other.md||'').matchAll(/\[\[([^\]]+?)\]\]/g)].some(m => m[1].trim().toLowerCase() === me);
+    }).map(p => p.id);
+  },
+  // shared-tag affinity
+  tagPeers(page){
+    if (!page || !page.tags.length) return [];
+    const set = new Set(page.tags);
+    return Vault.listPages()
+      .filter(p => p.id !== page.id && p.tags.some(t => set.has(t)))
+      .map(p => p.id);
+  },
+  // unified
+  linksFor(page){
+    return {
+      explicit: this.explicit(page),
+      backlinks: this.backlinks(page),
+      tagPeers: this.tagPeers(page)
+    };
+  }
+};
+
+/* ============================================================
+   GRAPH PROJECTION — pure: vault -> {nodes, edges}
+============================================================ */
+const GraphProjection = {
+  fromVault(){
+    const pages = Vault.listPages();
+    const idSet = new Set(pages.map(p=>p.id));
+    const edgeMap = new Map();
+    const addEdge = (a,b,kind) => {
+      if (a===b || !idSet.has(a) || !idSet.has(b)) return;
+      const k = [a,b].sort().join('::');
+      if (!edgeMap.has(k)) edgeMap.set(k, { source:a, target:b, kind });
+    };
+    pages.forEach(p => {
+      LinkResolver.explicit(p).forEach(t => addEdge(p.id, t, 'wikilink'));
+      LinkResolver.tagPeers(p).forEach(t => addEdge(p.id, t, 'tag'));
+    });
+    const degree = {};
+    [...edgeMap.values()].forEach(e => { degree[e.source]=(degree[e.source]||0)+1; degree[e.target]=(degree[e.target]||0)+1; });
+    const nodes = pages.map(p => ({
+      id: p.id, label: p.title, tags: p.tags, type: p.type,
+      r: 4 + Math.min(8, (degree[p.id]||0)*1.2)
+    }));
+    return { nodes, edges:[...edgeMap.values()] };
+  }
+};
+
+/* ============================================================
+   SOURCE FETCHER (seam — adapters per input mode)
+   Returns: { title, text, url, type } or throws.
+============================================================ */
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const SourceFetcher = {
+  // Jina Reader: free, no auth, CORS-friendly. Returns clean markdown for any URL.
+  async fromUrl(url){
+    if (!/^https?:\/\//i.test(url)) throw new Error('URL must start with http(s)://');
+    const reader = `https://r.jina.ai/${url}`;
+    const res = await fetch(reader, { headers: { 'Accept':'text/markdown' } });
+    if (!res.ok) throw new Error(`Reader failed: ${res.status}`);
+    const md = await res.text();
+    // Jina returns header block: "Title:", "URL Source:", "Markdown Content:"
+    const titleMatch = md.match(/^Title:\s*(.+)$/m);
+    const contentMatch = md.match(/Markdown Content:\s*\n([\s\S]+)$/);
+    const title = titleMatch ? titleMatch[1].trim() : url;
+    const text = contentMatch ? contentMatch[1].trim() : md;
+    return { title, text, url, type:'url' };
+  },
+
+  async fromPdf(file){
+    if (!window.pdfjsLib) throw new Error('PDF.js not loaded');
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const parts = [];
+    for (let i=1; i<=pdf.numPages; i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      parts.push(content.items.map(it => it.str).join(' '));
+    }
+    return {
+      title: file.name.replace(/\.pdf$/i,''),
+      text: parts.join('\n\n'),
+      url: '',
+      type: 'pdf',
+      meta: { pages: pdf.numPages, sizeKb: Math.round(file.size/1024) }
+    };
+  },
+
+  fromText(text, title=''){
+    const t = title || (text.split('\n').find(l=>l.trim()) || 'Pasted note').slice(0,80);
+    return { title: t, text, url:'', type:'note' };
+  }
+};
+
+/* ============================================================
+   INGEST FLOW — state machine. View subscribes; renders by stage.
+   States: idle -> fetching -> preview -> committing -> done | error
+============================================================ */
+const IngestFlow = {
+  stage: 'idle',          // idle | fetching | preview | committing | done | error
+  mode: 'url',            // url | pdf | text
+  fetched: null,          // {title, text, url, type, meta?}
+  edits: { title:'', text:'', url:'' },
+  error: null,
+  drafts: [],
+  source: null,
+  reset(){
+    this.stage='idle'; this.mode='url'; this.fetched=null;
+    this.edits={title:'',text:'',url:''}; this.error=null; this.drafts=[]; this.source=null;
+  },
+  setMode(m){ this.mode=m; this.stage='idle'; this.error=null; renderIngestModal(); },
+  async fetchUrl(url){
+    this.stage='fetching'; this.error=null; renderIngestModal();
+    try {
+      this.fetched = await SourceFetcher.fromUrl(url);
+      this.edits = { title:this.fetched.title, text:this.fetched.text, url:this.fetched.url };
+      this.stage='preview'; renderIngestModal();
+    } catch(e){ this.error = e.message; this.stage='error'; renderIngestModal(); }
+  },
+  async loadPdf(file){
+    this.stage='fetching'; this.error=null; renderIngestModal();
+    try {
+      this.fetched = await SourceFetcher.fromPdf(file);
+      this.edits = { title:this.fetched.title, text:this.fetched.text, url:'' };
+      this.stage='preview'; renderIngestModal();
+    } catch(e){ this.error = e.message; this.stage='error'; renderIngestModal(); }
+  },
+  loadText(text, title){
+    this.fetched = SourceFetcher.fromText(text, title);
+    this.edits = { title:this.fetched.title, text:this.fetched.text, url:'' };
+    this.stage='preview'; renderIngestModal();
+  },
+  async commit(){
+    this.stage='committing'; renderIngestModal();
+    const { title, text, url } = this.edits;
+    try {
+      // Tag every page touched by this ingest with the same batch id for rollback
+      const batchId = `b-${Date.now()}-${Math.floor(Math.random()*1e4)}`;
+      Vault._currentBatchId = batchId;
+      const result = await llm.ingest({ title, text, url });
+      Vault._currentBatchId = null;
+
+      const cs = result.conceptStubs?.length || 0;
+      const ps = result.personStubs?.length || 0;
+      const lp = result.linkedPages?.length || 0;
+      const parts = [];
+      if (cs) parts.push(`${cs} concept stub${cs===1?'':'s'}`);
+      if (ps) parts.push(`${ps} person stub${ps===1?'':'s'}`);
+      if (lp) parts.push(`linked ${lp} existing`);
+
+      // Record batch metadata for revert
+      const created = [
+        result.sourcePage?.id,
+        ...(result.conceptStubs||[]).map(p=>p.id),
+        ...(result.personStubs||[]).map(p=>p.id)
+      ].filter(Boolean);
+      const updated = (result.linkedPages || []).map(p => p.id);
+      Vault.recordBatch({
+        id: batchId,
+        ts: now(),
+        op: 'ingest',
+        sourceId: result.source?.id,
+        sourceTitle: result.sourcePage?.title,
+        provider: Settings.data.provider,
+        created,
+        updated
+      });
+
+      Vault.appendLog(LogEntry.create({
+        op:'ingest',
+        summary: `${result.sourcePage.title} (${result.sourcePage.type}) [${Settings.data.provider}]${parts.length?' · '+parts.join(' · '):''} {${batchId.slice(2,10)}}`
+      }));
+      this.source = result.source; this.sourcePage = result.sourcePage;
+      this.linkedPages = result.linkedPages || [];
+      this.conceptStubs = result.conceptStubs || [];
+      this.personStubs = result.personStubs || [];
+      this.batchId = batchId;
+      this.stage='done'; renderIngestModal();
+      Vault.state.ui.selectedPageId = result.sourcePage.id;
+      Vault.state.ui.activeView = 'page';
+      Vault.persist(); render();
+    } catch(e){
+      this.error = e.message; this.stage='error'; renderIngestModal();
+      toast('Ingest failed: ' + e.message.slice(0,80));
+    }
+  }
+};
+
+/* ============================================================
+   LLM ADAPTER (seam — Mock now, Anthropic/Agent later)
+============================================================ */
+const MockLLM = {
+  async ingest({title, text, url}){
+    // Karpathy method: AI writes direct, multiple pages per ingest:
+    // source/clip page + concept stubs + person stubs + auto-links to existing.
+    const kind = detectKind(url);
+    const handle = clipHandle(url);
+
+    // Title shape: clips get date-prefixed handle name
+    const fallbackTitle = (text.split('\n').find(l=>l.trim()) || 'Untitled').slice(0,80);
+    let cleanTitle = title || fallbackTitle;
+    if (kind==='clip' && handle){
+      cleanTitle = `${today()} ${handle}` + (title ? ` — ${title}`.slice(0,60) : '');
+    }
+
+    const summary = text.split(/[.!?]\s/).slice(0,2).join('. ').slice(0,240);
+    const tags = (text.toLowerCase().match(/\b(risk|design|trading|fitness|ai|agent|wiki|knowledge|note|idea|method|swing|breakout|pullback|short|long)\b/g) || [])
+      .filter((v,i,a)=>a.indexOf(v)===i).slice(0,4);
+    if (kind==='clip') tags.unshift('clip');
+
+    // Extract people: @handles + URL handle ONLY. Real LLM handles the rest.
+    // Capitalized "First Last" regex was producing UI-label false positives.
+    const peopleSet = new Set();
+    [...text.matchAll(/@([A-Za-z0-9_]{3,20})/g)].forEach(m => peopleSet.add(m[1]));
+    if (handle) peopleSet.add(handle);
+    const people = [...peopleSet].slice(0,4);
+
+    // Extract concepts: multi-word Title Case phrases only.
+    // Rejects sentence-start words ("Before", "Here") + UI labels ("Privacy Policy", "Cookie Use").
+    const SENTENCE_START_STOPS = new Set(['The','This','That','These','Those','And','But','For','With','From','Before','After','Here','There','Now','Then','When','Where','Why','How','What','Who','Which','While','Once','Most','Some','Many','Few','All','None','Any','Each','Every','Both','Either','Neither','Other','Such','Same','New','Old','Good','Bad','First','Last','Next','Previous']);
+    const UI_NOISE = new Set(['Privacy Policy','Cookie Use','Cookie Policy','Terms of Service','Terms of Use','Sign In','Sign Up','Sign Out','Log In','Log Out','Post See','Click Here','Read More','Learn More','Get Started','See More','Show More','Show Less','Page Not Found']);
+    // Only match 2-3 word Title Case spans (single words = too noisy in MockLLM)
+    const conceptSet = new Set();
+    [...text.matchAll(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/g)].forEach(m => {
+      const phrase = m[1];
+      const firstWord = phrase.split(' ')[0];
+      if (SENTENCE_START_STOPS.has(firstWord)) return;
+      if (UI_NOISE.has(phrase)) return;
+      if (peopleSet.has(phrase) || peopleSet.has(firstWord)) return;
+      conceptSet.add(phrase);
+    });
+    const concepts = [...conceptSet].filter(c => c.length>=8 && c.length<60).slice(0,6);
+
+    // Existing pages mentioned in text → auto-wikilink first occurrence
+    const linked = [];
+    let bodyText = text;
+    Vault.listPages().forEach(p => {
+      if (linked.find(x=>x.id===p.id)) return;
+      const esc = p.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`\\b(${esc})\\b`, 'i');
+      if (re.test(bodyText)){
+        linked.push(p);
+        bodyText = bodyText.replace(re, `[[$1]]`);
+      }
+    });
+
+    // 1. Source record
+    const source = Source.create({ title: cleanTitle, url, raw: text, type: url?'url':'note', summary });
+    Vault.putSource(source);
+
+    // 2. Source / clip page
+    const sourcePage = Page.create({
+      title: cleanTitle, type: kind, tags, sources:[source.id], status:'curated',
+      md: `# ${cleanTitle}\n\n## Summary\n\n${summary || '_(no summary)_'}\n\n## Source\n\n${url ? `<${url}>` : '_(pasted text)_'}\n\n## Body\n\n${bodyText}\n${
+        people.length ? `\n## People\n\n${people.map(p=>`- [[${p}]]`).join('\n')}\n` : ''
+      }${
+        concepts.length ? `\n## Concepts\n\n${concepts.map(c=>`- [[${c}]]`).join('\n')}\n` : ''
+      }${
+        linked.length ? `\n## Links\n\n${linked.map(p=>`- [[${p.title}]]`).join('\n')}\n` : ''
+      }`
+    });
+    Vault.putPage(sourcePage);
+
+    // 3. Concept stubs (skip if already exists)
+    const conceptStubs = [];
+    concepts.forEach(c => {
+      if (Vault.getPageByTitle(c)) return;
+      const stub = Page.create({
+        title: c, type:'concept', tags:[tags[0]||'concept'].filter(Boolean), status:'draft',
+        md: `# ${c}\n\n## Summary\n\n_Stub. Created from [[${cleanTitle}]] on ${today()}._\n\n## Mentioned in\n\n- [[${cleanTitle}]]\n`
+      });
+      Vault.putPage(stub);
+      conceptStubs.push(stub);
+    });
+
+    // 4. Person stubs (skip if exists)
+    const personStubs = [];
+    people.forEach(p => {
+      if (Vault.getPageByTitle(p)) return;
+      const stub = Page.create({
+        title: p, type:'person', tags:['person'], status:'draft',
+        md: `# ${p}\n\n## Summary\n\n_Stub. First mention via [[${cleanTitle}]] on ${today()}._\n\n## Mentioned in\n\n- [[${cleanTitle}]]\n`
+      });
+      Vault.putPage(stub);
+      personStubs.push(stub);
+    });
+
+    // 5. Append "Mentioned in" to existing linked pages
+    linked.forEach(p => {
+      const stamp = `- [[${cleanTitle}]] _(${today()})_`;
+      if (/## Mentioned in/i.test(p.md)){
+        p.md = p.md.replace(/(## Mentioned in\s*\n)([\s\S]*?)(\n##|\n*$)/i, (m, h, body, tail) => `${h}${body}${stamp}\n${tail}`);
+      } else {
+        p.md += `\n\n## Mentioned in\n\n${stamp}\n`;
+      }
+      Vault.putPage(p);
+    });
+
+    return { source, sourcePage, linkedPages: linked, conceptStubs, personStubs, tags };
+  },
+
+  async query(question){
+    const q = question.toLowerCase();
+    const hits = Vault.listPages().filter(p => {
+      const hay = (p.title + ' ' + p.md + ' ' + p.tags.join(' ')).toLowerCase();
+      return q.split(/\s+/).filter(t=>t.length>2).some(t => hay.includes(t));
+    }).slice(0,6);
+    if (!hits.length) return { answer: '_No matching pages found in vault. Try ingesting more sources._', citations: [] };
+    const snippets = hits.map(p => `**[[${p.title}]]** — ${(p.md.match(/## Summary\s*\n+([^\n#]+)/) || [,p.md.slice(0,160)])[1].trim()}`);
+    const answer = `Based on ${hits.length} page(s) in the vault:\n\n${snippets.join('\n\n')}\n\n_(Mock LLM — wire a real provider for synthesis.)_`;
+    return { answer, citations: hits.map(p => ({ id: p.id, title: p.title })) };
+  },
+
+  async lint(){
+    const issues = [];
+    const pages = Vault.listPages();
+    pages.forEach(p => {
+      // broken wikilinks
+      [...(p.md||'').matchAll(/\[\[([^\]]+?)\]\]/g)].forEach(m => {
+        const t = m[1].trim();
+        if (!Vault.getPageByTitle(t) && !['index','log'].includes(t.toLowerCase())) {
+          issues.push({ kind:'broken-link', page: p.id, detail: `[[${t}]]` });
+        }
+      });
+      // orphan: no inbound, no tags
+      if (LinkResolver.backlinks(p).length===0 && p.tags.length===0 && p.id !== 'welcome') {
+        issues.push({ kind:'orphan', page: p.id, detail: 'no backlinks, no tags' });
+      }
+      // missing summary
+      if (!/##\s+Summary/i.test(p.md||'')) {
+        issues.push({ kind:'missing-summary', page: p.id, detail: 'no ## Summary section' });
+      }
+    });
+    return issues;
+  }
+};
+/* ============================================================
+   LLM ADAPTERS (Phase 2)
+   Single LLM module routes to provider transport based on settings.
+   Supports OpenAI-compatible endpoints (OpenAI, OpenRouter, Ollama,
+   any /v1/chat/completions service) plus Anthropic native shape.
+   Personal-use only — key sits in localStorage, exposed to page.
+============================================================ */
+const PROVIDER_PRESETS = {
+  openai:     { label:'OpenAI',     baseUrl:'https://api.openai.com/v1',         shape:'openai',    needsKey:true,  defaultModel:'gpt-4o-mini', modelHint:'gpt-4o-mini, gpt-4o, o1-mini' },
+  openrouter: { label:'OpenRouter', baseUrl:'https://openrouter.ai/api/v1',      shape:'openai',    needsKey:true,  defaultModel:'nousresearch/hermes-3-llama-3.1-405b', modelHint:'nousresearch/hermes-3-llama-3.1-405b, anthropic/claude-sonnet-4.5, openai/gpt-4o-mini, meta-llama/llama-3.3-70b-instruct' },
+  anthropic:  { label:'Anthropic',  baseUrl:'https://api.anthropic.com/v1',      shape:'anthropic', needsKey:true,  defaultModel:'claude-sonnet-4-6', modelHint:'claude-sonnet-4-6, claude-opus-4-7, claude-haiku-4-5-20251001' },
+  ollama:     { label:'Ollama',     baseUrl:'http://localhost:11434/v1',         shape:'openai',    needsKey:false, defaultModel:'llama3.1', modelHint:'llama3.1, hermes3, qwen2.5, mistral (whatever you have pulled locally)' },
+  custom:     { label:'Custom',     baseUrl:'',                                  shape:'openai',    needsKey:true,  defaultModel:'', modelHint:'any OpenAI-compatible /v1/chat/completions endpoint (Together, Groq, Fireworks, vLLM, LM Studio…)' }
+};
+
+const Settings = {
+  KEY: 'vault-v4-settings',
+  data: {
+    provider: 'mock',          // 'mock' | 'openai' | 'openrouter' | 'anthropic' | 'ollama' | 'custom'
+    apiKey: '',
+    baseUrl: '',               // for custom only; presets use PROVIDER_PRESETS
+    model: 'gpt-4o-mini',
+    maxTokens: 2000
+  },
+  load(){
+    try { const raw = localStorage.getItem(this.KEY); if (raw) Object.assign(this.data, JSON.parse(raw)); } catch(e){}
+    return this.data;
+  },
+  save(){ localStorage.setItem(this.KEY, JSON.stringify(this.data)); },
+  resolvedBaseUrl(){
+    const p = this.data.provider;
+    if (p==='custom') return (this.data.baseUrl || '').replace(/\/$/, '');
+    return PROVIDER_PRESETS[p]?.baseUrl || '';
+  },
+  resolvedShape(){
+    const p = this.data.provider;
+    return PROVIDER_PRESETS[p]?.shape || 'openai';
+  }
+};
+
+const LLM = {
+  /* ---------- transport ---------- */
+  async call({ system, user, maxTokens }){
+    const s = Settings.data;
+    if (Settings.resolvedShape()==='anthropic') return this._callAnthropic({ system, user, maxTokens });
+    return this._callOpenAI({ system, user, maxTokens });
+  },
+
+  async _callOpenAI({ system, user, maxTokens }){
+    const s = Settings.data;
+    const base = Settings.resolvedBaseUrl();
+    if (!base) throw new Error('No baseUrl set. Open Settings (⚙) to configure.');
+    const preset = PROVIDER_PRESETS[s.provider] || PROVIDER_PRESETS.custom;
+    if (preset.needsKey && !s.apiKey) throw new Error(`No API key set for ${preset.label}.`);
+    const headers = { 'content-type':'application/json' };
+    if (s.apiKey) headers['authorization'] = `Bearer ${s.apiKey}`;
+    if (s.provider==='openrouter'){
+      headers['HTTP-Referer'] = location.origin || 'https://localhost';
+      headers['X-Title'] = 'AI Wiki Vault';
+    }
+    const body = {
+      model: s.model,
+      max_tokens: maxTokens || s.maxTokens,
+      messages: [
+        { role:'system', content: system },
+        { role:'user',   content: user }
+      ]
+    };
+    const res = await fetch(`${base}/chat/completions`, { method:'POST', headers, body: JSON.stringify(body) });
+    if (!res.ok){
+      const errText = await res.text();
+      throw new Error(`${preset.label} ${res.status}: ${errText.slice(0,240)}`);
+    }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  },
+
+  async _callAnthropic({ system, user, maxTokens }){
+    const s = Settings.data;
+    if (!s.apiKey) throw new Error('No API key set for Anthropic.');
+    const body = {
+      model: s.model,
+      max_tokens: maxTokens || s.maxTokens,
+      system: [{ type:'text', text: system, cache_control:{ type:'ephemeral' } }],
+      messages: [{ role:'user', content: user }]
+    };
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers: {
+        'content-type':'application/json',
+        'x-api-key': s.apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok){
+      const errText = await res.text();
+      throw new Error(`Anthropic ${res.status}: ${errText.slice(0,240)}`);
+    }
+    const data = await res.json();
+    const usage = data.usage || {};
+    if (usage.cache_read_input_tokens) console.log(`[cache hit] ${usage.cache_read_input_tokens} tokens`);
+    return data.content?.[0]?.text || '';
+  },
+
+  parseJson(raw){
+    if (!raw) return null;
+    // Strip code fences if model wrapped JSON in ```json ... ```
+    const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const blob = fence ? fence[1] : raw;
+    const m = blob.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    try { return JSON.parse(m[0]); } catch(e){ return null; }
+  },
+
+  /* ---------- ops (provider-agnostic, share transport) ---------- */
+  async ingest({ title, text, url }){
+    const pages = Vault.listPages();
+    const kind = detectKind(url);
+    const handle = clipHandle(url);
+    const pageList = pages.map(p => `- [${p.type}] ${p.title}${p.tags.length?` (${p.tags.join(',')})`:''}`).join('\n') || '(empty vault)';
+
+    const system = `You are an AI librarian for a personal Karpathy-style LLM wiki. The wiki is a flat markdown vault using [[Wikilinks]] and emergent tags. Pages are typed: concept | person | source | clip | synthesis | note.
+
+For each ingest, you EXPAND the vault: produce one source/clip page AND extract every distinct concept and person worth its own page. Karpathy method: 1 ingest → 5-15 pages of summaries, entity pages, concept pages, all cross-linked.
+
+Return STRICT JSON only. No commentary outside the JSON object.
+
+Schema:
+{
+  "title":    "<cleaned title, max 80 chars; for clips use date+handle>",
+  "kind":     "source | clip",
+  "summary":  "<2-3 sentence factual summary>",
+  "tags":     ["lowercase-kebab-tag", ...],
+  "concepts": ["Concept Name", ...],
+  "people":   ["Person or Handle", ...],
+  "mentions": ["Existing Page Title", ...]
+}
+
+CONCEPTS — what counts as a concept page
+
+A concept is an idea, framework, pattern, strategy, technique, or named methodology that someone could spend a whole page describing. Use multi-word descriptive phrases. Title Case.
+
+GOOD concept names (the kind to extract):
+- "Swing Trading Pullback Entries"
+- "Breakout Entry Setup"
+- "LLM Wiki Pattern"
+- "AI Research Overview"
+- "Claude.md Behavioral Guidelines"
+- "Prompt Caching"
+- "Position Sizing"
+- "Risk Management"
+- "Negative Space"
+- "13F Tracking"
+
+BAD — DO NOT extract these as concepts:
+- Single capitalized words at sentence starts: "Before", "Here", "March", "Most", "Now", "Then"
+- UI / legal labels: "Privacy Policy", "Cookie Use", "Sign In", "Post See", "Click Here", "Read More"
+- Generic verbs/nouns: "Leaving", "Sign", "Page", "View"
+- Pure proper nouns that are products/companies (treat as tags or mentions, not concepts): "GitHub", "Claude", "Twitter"
+- One-word fragments that are actually part of a sentence
+
+Test: if you couldn't write 2 paragraphs explaining the concept, it's not a concept — drop it.
+
+PEOPLE — what counts as a person page
+
+A person is a real human or a real social-media handle. Either:
+- Full name in Title Case ("Andrej Karpathy", "Jane Smith")
+- A handle from a URL or @mention, returned as just the handle without @ ("JLawStock", "karpathy", "defileo")
+
+DO NOT include as people:
+- Two-word capitalized phrases that aren't names ("Cookie Use", "Privacy Policy", "Post See", "Claude Code", "Prompt Caching")
+- Product names ("Claude", "GPT", "Hermes" the model — only "Hermes" the human if context says so)
+- Generic 2-word phrases (always check: would a real person be named this?)
+
+If unsure whether something is a person or a concept, prefer concept.
+
+MENTIONS — only existing titles
+
+"mentions" = EXACT titles drawn verbatim from the existing pages list. Never invent. Never add titles you would create as concepts/people stubs — those go in concepts/people instead.
+
+OTHER RULES
+- "kind" = "clip" for short social posts (twitter/x/threads/reddit/linkedin) and "source" otherwise.
+- Same item never appears in more than one of concepts/people/mentions.
+- Aim for 3-10 concepts+people combined when source has substance. Quality over quantity — a vague extraction is worse than fewer good ones.
+- 1-5 tags, lowercase, dash-separated, reusing existing tags when sensible.
+- Concept titles should be the form a curious reader would search for, not random capitalized fragments from the prose.`;
+
+    const user = `Existing pages:\n${pageList}\n\n---\n\nIngest:\nDetected kind: ${kind}${handle?` (handle: ${handle})`:''}\nSource URL: ${url || '(pasted)'}\nSource title hint: ${title || '(none — infer)'}\nDate: ${today()}\n\nSource text:\n${text.slice(0, 80000)}\n\nReturn JSON only.`;
+
+    const raw = await this.call({ system, user, maxTokens: 1500 });
+    const parsed = this.parseJson(raw) || { title: title || 'Untitled', kind, summary: raw.slice(0,200), tags:[], concepts:[], people:[], mentions:[] };
+
+    const finalKind = parsed.kind || kind;
+    let cleanTitle = parsed.title || title || (text.split('\n').find(l=>l.trim()) || 'Untitled').slice(0,80);
+    if (finalKind==='clip' && handle && !cleanTitle.includes(handle)){
+      cleanTitle = `${today()} ${handle}` + (parsed.title ? ` — ${parsed.title}`.slice(0,60) : '');
+    }
+
+    // 1. Source record
+    const source = Source.create({
+      title: cleanTitle, url, raw: text,
+      type: url ? 'url' : 'note',
+      summary: parsed.summary || ''
+    });
+    Vault.putSource(source);
+
+    // 2. Auto-wikilink existing mentions in body
+    const linked = [];
+    let bodyText = text;
+    (parsed.mentions || []).forEach(t => {
+      const p = Vault.getPageByTitle(t);
+      if (p && !linked.find(x=>x.id===p.id)){
+        linked.push(p);
+        const esc = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`\\b(${esc})\\b`, 'i');
+        bodyText = bodyText.replace(re, `[[$1]]`);
+      }
+    });
+
+    // 3. Source / clip page
+    const tags = (finalKind==='clip' && !((parsed.tags||[]).includes('clip'))) ? ['clip', ...(parsed.tags||[])] : (parsed.tags || []);
+    const sourcePage = Page.create({
+      title: cleanTitle, type: finalKind, tags, sources:[source.id], status:'curated',
+      md: `# ${cleanTitle}\n\n## Summary\n\n${parsed.summary || '_(no summary)_'}\n\n## Source\n\n${url ? `<${url}>` : '_(pasted text)_'}\n\n## Body\n\n${bodyText}\n${
+        (parsed.people||[]).length ? `\n## People\n\n${parsed.people.map(p=>`- [[${p}]]`).join('\n')}\n` : ''
+      }${
+        (parsed.concepts||[]).length ? `\n## Concepts\n\n${parsed.concepts.map(c=>`- [[${c}]]`).join('\n')}\n` : ''
+      }${
+        linked.length ? `\n## Links\n\n${linked.map(p=>`- [[${p.title}]]`).join('\n')}\n` : ''
+      }`
+    });
+    Vault.putPage(sourcePage);
+
+    // 4. Concept stubs
+    const conceptStubs = [];
+    (parsed.concepts || []).forEach(c => {
+      if (Vault.getPageByTitle(c)) return;
+      const stub = Page.create({
+        title: c, type:'concept', tags:[tags[0]||'concept'].filter(Boolean), status:'draft',
+        md: `# ${c}\n\n## Summary\n\n_Stub. Created from [[${cleanTitle}]] on ${today()}._\n\n## Mentioned in\n\n- [[${cleanTitle}]]\n`
+      });
+      Vault.putPage(stub);
+      conceptStubs.push(stub);
+    });
+
+    // 5. Person stubs
+    const personStubs = [];
+    (parsed.people || []).forEach(p => {
+      if (Vault.getPageByTitle(p)) return;
+      const stub = Page.create({
+        title: p, type:'person', tags:['person'], status:'draft',
+        md: `# ${p}\n\n## Summary\n\n_Stub. First mention via [[${cleanTitle}]] on ${today()}._\n\n## Mentioned in\n\n- [[${cleanTitle}]]\n`
+      });
+      Vault.putPage(stub);
+      personStubs.push(stub);
+    });
+
+    // 6. Append "Mentioned in" to existing linked pages
+    linked.forEach(p => {
+      const stamp = `- [[${cleanTitle}]] _(${today()})_`;
+      if (/## Mentioned in/i.test(p.md)){
+        p.md = p.md.replace(/(## Mentioned in\s*\n)([\s\S]*?)(\n##|\n*$)/i, (m, h, body, tail) => `${h}${body}${stamp}\n${tail}`);
+      } else {
+        p.md += `\n\n## Mentioned in\n\n${stamp}\n`;
+      }
+      Vault.putPage(p);
+    });
+
+    return { source, sourcePage, linkedPages: linked, conceptStubs, personStubs, tags };
+  },
+
+  async query(question){
+    const pages = Vault.listPages();
+    if (!pages.length) return { answer:'_Vault is empty. Ingest sources first._', citations: [] };
+
+    const corpus = pages.map(p =>
+      `### ${p.title} {id: ${p.id}}\nTags: ${p.tags.join(', ') || '—'}\n\n${(p.md || '').slice(0, 2500)}`
+    ).join('\n\n---\n\n');
+
+    const system = `You are a research assistant answering from a personal Karpathy-style LLM wiki.
+
+Rules:
+- Answer using ONLY the provided vault pages. Do NOT use outside knowledge.
+- Cite every factual claim with the page id in [[brackets]] using its id, e.g. [[risk-management]].
+- If the answer is not in the vault, say so plainly.
+- Output STRICT JSON only:
+
+{
+  "answer": "<markdown answer with [[page-id]] citations inline>",
+  "citations": [{"id":"page-id","title":"Page Title"}]
+}
+
+Vault contents follow:
+
+${corpus}`;
+
+    const user = `Question: ${question}\n\nReturn JSON only.`;
+    const raw = await this.call({ system, user, maxTokens: 1500 });
+    const parsed = this.parseJson(raw);
+    if (!parsed) return { answer: raw, citations: [] };
+
+    let pretty = parsed.answer || '';
+    (parsed.citations || []).forEach(c => {
+      pretty = pretty.split(`[[${c.id}]]`).join(`[[${c.title}]]`);
+    });
+    return { answer: pretty, citations: parsed.citations || [] };
+  },
+
+  async lint(){
+    // Heuristic lint stays fast + free.
+    return MockLLM.lint();
+  }
+};
+
+let llm = MockLLM;
+function applyProvider(){
+  Settings.load();
+  llm = (Settings.data.provider === 'mock') ? MockLLM : LLM;
+}
+
+/* ============================================================
+   ANCHOR PAGES — index.md + log.md (auto-rendered)
+============================================================ */
+const Anchors = {
+  isAnchor(id){ return id==='__index__' || id==='__log__'; },
+  renderIndex(){
+    const byType = {};
+    Vault.listPages().forEach(p => { (byType[p.type || 'note'] ||= []).push(p); });
+    const order = Object.keys(PAGE_TYPES).filter(t => t!=='anchor').sort((a,b)=>PAGE_TYPES[a].order - PAGE_TYPES[b].order);
+    const sections = order.map(type => {
+      const ps = (byType[type] || []).sort((a,b)=>a.title.localeCompare(b.title));
+      if (!ps.length) return '';
+      const meta = PAGE_TYPES[type];
+      const items = ps.map(p => `- [[${p.title}]]${p.status==='draft'?' _(draft)_':''}${p.tags.length?` — ${p.tags.map(t=>'#'+t).join(' ')}`:''}`).join('\n');
+      return `## ${meta.glyph} ${meta.label}\n\n${items}`;
+    }).filter(Boolean).join('\n\n');
+    const stats = order.map(t => byType[t]?.length ? `${byType[t].length} ${PAGE_TYPES[t].label.toLowerCase()}` : null).filter(Boolean).join(' · ');
+    return `# index\n\n_Auto-generated catalog of all pages, grouped by type._\n\n${sections}\n\n---\n\n_${stats}_`;
+  },
+  renderLog(){
+    const entries = [...Vault.listLog()].reverse().map(e =>
+      `- \`${e.ts.slice(0,16).replace('T',' ')}\` **${e.op}** — ${e.summary}`
+    ).join('\n');
+    return `# log\n\n_Append-only history of vault operations._\n\n${entries || '_(no entries yet)_'}`;
+  },
+  asPage(id){
+    if (id==='__index__') return { id:'__index__', title:'index', type:'anchor', tags:[], sources:[], status:'auto', md: this.renderIndex(), updated: today() };
+    if (id==='__log__') return { id:'__log__', title:'log', type:'anchor', tags:[], sources:[], status:'auto', md: this.renderLog(), updated: today() };
+    return null;
+  }
+};
+
+/* ============================================================
+   MARKDOWN RENDER
+============================================================ */
+function renderMarkdown(md){
+  if (!md) return '<div></div>';
+
+  // Pre-extract fenced code blocks so their content isn't transformed
+  const codeBlocks = [];
+  md = md.replace(/```([\s\S]*?)```/g, (_, c) => {
+    codeBlocks.push(c);
+    return ` CB${codeBlocks.length - 1} `;
+  });
+
+  // Inline transforms applied AFTER escapeHtml — input is escape-safe text
+  const renderInline = (s) => escapeHtml(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[\s(])_([^_\n]+)_(?=[\s.,!?;:)\]]|$)/g, '$1<i>$2</i>')
+    .replace(/\[\[([^\]]+?)\]\]/g, (_, ref) => {
+      const t = ref.trim();
+      const tLower = t.toLowerCase();
+      if (tLower === 'index') return `<a class="wikilink" data-anchor="__index__">${t}</a>`;
+      if (tLower === 'log')   return `<a class="wikilink" data-anchor="__log__">${t}</a>`;
+      const p = Vault.getPageByTitle(t);
+      if (p) return `<a class="wikilink" data-pageid="${p.id}">${t}</a>`;
+      return `<a class="wikilink broken" data-create="${t}" title="Page not found — click to create">${t}</a>`;
+    })
+    .replace(/&lt;(https?:[^\s&]+)&gt;/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--rust)">$1</a>');
+
+  // Split into blocks separated by blank lines, render block-by-block
+  const blocks = md.split(/\n\s*\n+/);
+  const html = blocks.map(block => {
+    block = block.replace(/^\s+|\s+$/g, '');
+    if (!block) return '';
+
+    // Code block placeholder
+    const cb = block.match(/^ CB(\d+) $/);
+    if (cb) return `<pre>${escapeHtml(codeBlocks[+cb[1]])}</pre>`;
+
+    // Headings (single-line block)
+    if (/^### /.test(block)) return `<h3>${renderInline(block.slice(4))}</h3>`;
+    if (/^## /.test(block))  return `<h2>${renderInline(block.slice(3))}</h2>`;
+    if (/^# /.test(block))   return `<h1>${renderInline(block.slice(2))}</h1>`;
+
+    // Horizontal rule
+    if (/^---+$/.test(block)) return '<hr style="border:none;border-top:1px solid var(--line-2);margin:14px 0">';
+
+    // Blockquote
+    if (/^>\s/.test(block)) {
+      const lines = block.split('\n').map(l => l.replace(/^>\s?/, ''));
+      return `<blockquote>${renderInline(lines.join(' '))}</blockquote>`;
+    }
+
+    // Unordered list — every non-empty line must start with '- '
+    const lines = block.split('\n');
+    if (lines.every(l => /^- /.test(l) || !l.trim())) {
+      const items = lines.filter(l => /^- /.test(l))
+        .map(l => `<li>${renderInline(l.slice(2))}</li>`).join('');
+      return `<ul>${items}</ul>`;
+    }
+
+    // Ordered list
+    if (lines.every(l => /^\d+\.\s/.test(l) || !l.trim())) {
+      const items = lines.filter(l => /^\d+\.\s/.test(l))
+        .map(l => `<li>${renderInline(l.replace(/^\d+\.\s/, ''))}</li>`).join('');
+      return `<ol>${items}</ol>`;
+    }
+
+    // Paragraph — collapse internal newlines to spaces (markdown-style)
+    return `<p>${renderInline(block.replace(/\n/g, ' '))}</p>`;
+  }).join('\n');
+
+  return `<div>${html}</div>`;
+}
+
+/* ============================================================
+   VIEWS — registry
+============================================================ */
+const Views = {
+  page: renderPageView,
+  drafts: renderDraftsView,
+  graph: renderGraphView,
+  search: renderSearchView,
+  tag: renderTagView,
+};
+
+function renderPageView(){
+  const id = Vault.state.ui.selectedPageId;
+  let page = Anchors.asPage(id) || Vault.getPage(id);
+  const main = $('#mainContent');
+  const actions = $('#mainActions');
+  const crumb = $('#crumb');
+
+  if (!page){
+    main.innerHTML = `<p class="rail-empty mono">Select a page from the tree.</p>`;
+    actions.innerHTML = '';
+    crumb.innerHTML = `vault / <b>—</b>`;
+    return;
+  }
+
+  crumb.innerHTML = `vault / <b>${escapeHtml(page.title)}</b>`;
+
+  const isAnchor = Anchors.isAnchor(page.id);
+  actions.innerHTML = isAnchor
+    ? `<button id="aRefresh">Refresh</button>`
+    : `<button id="aEdit">${Vault.state.ui.editing ? 'Done' : 'Edit'}</button><button id="aDelete">Delete</button>`;
+
+  const editing = !isAnchor && Vault.state.ui.editing;
+  const tagPills = page.tags.map(t => `<span class="pill tag" data-tag="${escapeHtml(t)}">#${escapeHtml(t)}</span>`).join('');
+  const sourcePills = (page.sources||[]).map(sid => {
+    const s = Vault.getSource(sid); return s ? `<span class="pill" title="${escapeHtml(s.url||'')}">⌖ ${escapeHtml(s.title)}</span>` : '';
+  }).join('');
+  const statusPill = page.status==='draft' ? `<span class="pill draft">DRAFT</span>` : '';
+
+  main.innerHTML = `
+    <div class="md">
+      <div class="meta">
+        <span><b>type</b> ${escapeHtml(page.type)}</span>
+        <span><b>updated</b> ${escapeHtml(page.updated)}</span>
+        ${statusPill}
+        ${tagPills}
+        ${sourcePills}
+      </div>
+      ${editing
+        ? `<textarea class="editor" id="editorArea">${escapeHtml(page.md)}</textarea>
+           <div style="margin-top:10px;display:flex;gap:8px"><button class="op" id="aSave">Save</button><button class="op" id="aCancel">Cancel</button></div>`
+        : renderMarkdown(page.md)}
+    </div>
+  `;
+
+  if (isAnchor){
+    $('#aRefresh').onclick = () => render();
+  } else if (editing){
+    $('#aSave').onclick = () => {
+      page.md = $('#editorArea').value;
+      Vault.putPage(page);
+      Vault.appendLog(LogEntry.create({ op:'edit', summary:`Edited [[${page.title}]]` }));
+      Vault.state.ui.editing = false; Vault.persist(); render();
+      toast('Saved');
+    };
+    $('#aCancel').onclick = () => { Vault.state.ui.editing = false; Vault.persist(); render(); };
+  } else {
+    $('#aEdit').onclick = () => { Vault.state.ui.editing = true; Vault.persist(); render(); };
+    $('#aDelete').onclick = () => {
+      // Preview cascade scope before confirm
+      const titleRe = page.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const stubFromMe = new RegExp(`(Created from|First mention via)\\s*\\[\\[${titleRe}\\]\\]`);
+      const cascadeStubs = Vault.listPages().filter(p => p.id !== page.id && p.status === 'draft' && stubFromMe.test(p.md||''));
+      const cascadeNames = cascadeStubs.map(p => p.title);
+      const msg = cascadeStubs.length
+        ? `Delete "${page.title}"?\n\nThis will also delete ${cascadeStubs.length} draft stub${cascadeStubs.length===1?'':'s'} that were created from it:\n\n• ${cascadeNames.slice(0,8).join('\n• ')}${cascadeNames.length>8?`\n• …+${cascadeNames.length-8} more`:''}\n\nMentions in other pages will be cleaned up.`
+        : `Delete "${page.title}"?`;
+      if (!confirm(msg)) return;
+      const result = Vault.deletePage(page.id);
+      const parts = [`Deleted "${page.title}"`];
+      if (result.cascadedStubs) parts.push(`+${result.cascadedStubs} stub${result.cascadedStubs===1?'':'s'}`);
+      if (result.removedSources) parts.push(`+${result.removedSources} source${result.removedSources===1?'':'s'}`);
+      Vault.appendLog(LogEntry.create({ op:'delete', summary: parts.join(' · ') }));
+      render(); toast(parts.join(' · '));
+    };
+  }
+
+  // wikilink + tag clicks
+  $$('.wikilink').forEach(a => {
+    a.onclick = (e) => {
+      e.preventDefault();
+      if (a.dataset.anchor){ Vault.state.ui.selectedPageId = a.dataset.anchor; Vault.persist(); render(); }
+      else if (a.dataset.pageid){ Vault.state.ui.selectedPageId = a.dataset.pageid; Vault.state.ui.editing = false; Vault.persist(); render(); }
+      else if (a.dataset.create){ openCreatePageModal(a.dataset.create); }
+    };
+  });
+  $$('.pill.tag').forEach(p => p.onclick = () => { Vault.state.ui.activeView='tag'; Vault.state.ui.activeTag = p.dataset.tag; Vault.persist(); render(); });
+}
+
+function renderDraftsView(){
+  const drafts = Vault.listDrafts();
+  $('#crumb').innerHTML = `vault / <b>drafts</b>`;
+  $('#mainActions').innerHTML = drafts.length ? `<button id="aClearAll">Clear all</button>` : '';
+  const main = $('#mainContent');
+  if (!drafts.length){
+    main.innerHTML = `<p class="rail-empty mono">No drafts. Run <b>Ingest</b> or <b>Lint</b> to generate.</p>`;
+    return;
+  }
+  main.innerHTML = `
+    <h2 class="mono" style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:16px">${drafts.length} draft${drafts.length>1?'s':''}</h2>
+    ${drafts.map(d => {
+      const target = d.target ? Vault.getPage(d.target) : null;
+      return `
+        <div style="border:1px solid var(--line-2);padding:14px;margin-bottom:12px;background:var(--bg-1)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span class="mono" style="font-size:11px;color:var(--rust);text-transform:uppercase;letter-spacing:.1em">${escapeHtml(d.kind)}</span>
+            <span class="mono" style="font-size:10px;color:var(--ink-3)">${target ? '→ '+escapeHtml(target.title) : 'new page'}</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:10px;font-style:italic">${escapeHtml(d.reasoning)}</div>
+          <pre style="font-family:var(--mono);font-size:11px;background:var(--bg);padding:10px;color:var(--ink-2);max-height:200px;overflow:auto;white-space:pre-wrap">${escapeHtml(d.content.slice(0,600))}${d.content.length>600?'\\n…':''}</pre>
+          <div style="margin-top:10px;display:flex;gap:6px">
+            <button class="op" data-apply="${d.id}">Apply</button>
+            <button class="op" data-discard="${d.id}">Discard</button>
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+  $$('[data-apply]').forEach(b => b.onclick = () => applyDraft(b.dataset.apply));
+  $$('[data-discard]').forEach(b => b.onclick = () => { Vault.removeDraft(b.dataset.discard); render(); toast('Discarded'); });
+  if ($('#aClearAll')) $('#aClearAll').onclick = () => { if(confirm('Clear all drafts?')){ Vault.state.drafts=[]; Vault.persist(); render(); }};
+}
+
+/* Color palette by page type — readable, type-distinct, lime reserved for hubs */
+const TYPE_COLORS = {
+  concept:   '#d97757', // rust — primary ideas
+  person:    '#9b8cf2', // soft violet — entities
+  source:    '#5fb8c9', // teal — long-form content
+  clip:      '#7a7770', // dim ink — ephemera
+  synthesis: '#e6b450', // amber — derived
+  note:      '#5a5a5a', // gray — generic
+  anchor:    '#ece9e2'  // ink — meta
+};
+function pageNodeColor(p){ return TYPE_COLORS[p.type] || '#d97757'; }
+
+let _bigSim, _bigZoom, _pulseTimer;
+function clearBigGraph(){
+  if (_pulseTimer){ clearInterval(_pulseTimer); _pulseTimer = null; }
+  if (_bigSim){ _bigSim.stop(); _bigSim = null; }
+}
+window.addEventListener('beforeunload', clearBigGraph);
+
+function renderGraphView(){
+  clearBigGraph();
+  $('#crumb').innerHTML = `vault / <b>graph</b>`;
+  $('#mainActions').innerHTML = '';
+  const main = $('#mainContent');
+
+  main.innerHTML = `
+    <div class="graph-wrap" style="height:calc(100vh - 152px)">
+      <div class="graph-grid"></div>
+      <div class="graph-overlay">
+        <h2>// SECOND BRAIN</h2>
+        <p>Murmuration of ideas. Drag to rearrange. Scroll to zoom. Hover to isolate. Click to inspect.</p>
+      </div>
+      <div class="graph-controls">
+        <button class="gctl" id="gZoomIn" title="Zoom in">+</button>
+        <button class="gctl" id="gZoomOut" title="Zoom out">−</button>
+        <button class="gctl" id="gRecenter" title="Recenter">◎</button>
+      </div>
+      <div class="legend" id="gLegend"></div>
+      <div class="graph-stats">
+        <div class="gstat"><b id="statN">0</b>nodes</div>
+        <div class="gstat"><b id="statE">0</b>edges</div>
+        <div class="gstat"><b id="statT">0</b>types</div>
+      </div>
+      <svg id="bigGraph"></svg>
+    </div>
+  `;
+
+  // Build data with v3-style 1:3 sizing
+  const pages = Vault.listPages();
+  const idSet = new Set(pages.map(p=>p.id));
+  const edgeMap = new Map();
+  const addEdge = (a, b, soft) => {
+    if (a===b || !idSet.has(a) || !idSet.has(b)) return;
+    const key = [a,b].sort().join('::');
+    if (edgeMap.has(key)){
+      const e = edgeMap.get(key);
+      if (e.soft && !soft) e.soft = false;
+      return;
+    }
+    const ap = Vault.getPage(a), bp = Vault.getPage(b);
+    const cross = ap && bp && (ap.tags[0] || '') !== (bp.tags[0] || '');
+    edgeMap.set(key, { source:a, target:b, cross, soft:!!soft });
+  };
+  pages.forEach(p => {
+    LinkResolver.explicit(p).forEach(t => addEdge(p.id, t, false));
+    LinkResolver.tagPeers(p).forEach(t => addEdge(p.id, t, true));
+  });
+  const links = [...edgeMap.values()];
+
+  const degree = {};
+  pages.forEach(p => degree[p.id] = 0);
+  links.forEach(l => { degree[l.source]++; degree[l.target]++; });
+  const maxDeg = Math.max(1, ...Object.values(degree));
+  const R_MIN = 5, R_MAX = 15; // 1:3 ratio
+  // Hub detection — top 3 by degree (must have degree > 1)
+  const sortedDegrees = Object.values(degree).sort((a,b)=>b-a);
+  const hubThreshold = Math.max(2, sortedDegrees[2] || 2);
+  const nodes = pages.map(p => ({
+    id: p.id, label: p.title, type: p.type,
+    firstTag: p.tags[0] || '',
+    color: pageNodeColor(p),
+    degree: degree[p.id],
+    isHub: degree[p.id] >= hubThreshold,
+    r: R_MIN + (degree[p.id] / maxDeg) * (R_MAX - R_MIN)
+  }));
+
+  // Legend — type colors (always same) + hub indicator
+  const types = [...new Set(nodes.map(n=>n.type))].filter(Boolean);
+  const orderedTypes = Object.keys(PAGE_TYPES).filter(t => types.includes(t));
+  const hubCount = nodes.filter(n => n.isHub).length;
+  $('#statN').textContent = nodes.length;
+  $('#statE').textContent = links.length;
+  $('#statT').textContent = types.length;
+  $('#gLegend').innerHTML = orderedTypes.map(t => {
+    const meta = PAGE_TYPES[t];
+    return `<div class="legend-row"><span class="swatch" style="background:${TYPE_COLORS[t] || '#d97757'}"></span>${meta.glyph} ${meta.label}</div>`;
+  }).join('') + (hubCount ? `
+    <div class="legend-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)">
+      <span class="swatch" style="background:transparent;border:1.5px solid #CCFF00"></span>Core idea (top ${hubCount})
+    </div>
+  ` : '');
+
+  const svg = d3.select('#bigGraph');
+  const wrap = $('.graph-wrap');
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+
+  svg.selectAll('*').remove();
+
+  // Glow filter
+  const defs = svg.append('defs');
+  const glow = defs.append('filter').attr('id','nodeGlow').attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
+  glow.append('feGaussianBlur').attr('stdDeviation','3').attr('result','coloredBlur');
+
+  const g = svg.append('g');
+
+  _bigZoom = d3.zoom().scaleExtent([0.3, 4]).on('zoom', ev => g.attr('transform', ev.transform));
+  svg.call(_bigZoom);
+
+  // Cluster centers per page TYPE (concepts cluster, people cluster, etc.)
+  const typeOrder = Object.keys(PAGE_TYPES).filter(t => t !== 'anchor' && nodes.some(n=>n.type===t));
+  const centers = {};
+  typeOrder.forEach((t, i) => {
+    const angle = (Math.PI*2*i)/Math.max(typeOrder.length,1) - Math.PI/2;
+    const radius = Math.min(w,h) * 0.30;
+    centers[t] = { x: w/2 + Math.cos(angle)*radius, y: h/2 + Math.sin(angle)*radius };
+  });
+
+  const linkColor = d => d.cross ? '#CCFF00' : (d.soft ? 'rgba(204,255,0,.22)' : 'rgba(255,255,255,.22)');
+  const linkWidth = d => d.soft ? 0.6 : (d.cross ? 1.2 : 0.9);
+  const linkDash  = d => d.cross ? '4 4' : (d.soft ? '2 5' : null);
+  const linkOpacity = d => d.soft ? 0.35 : 0.6;
+
+  const link = g.append('g').attr('class','links').selectAll('line')
+    .data(links).enter().append('line')
+    .attr('stroke', linkColor)
+    .attr('stroke-width', linkWidth)
+    .attr('stroke-dasharray', linkDash)
+    .attr('opacity', linkOpacity);
+
+  const node = g.append('g').attr('class','nodes').selectAll('g')
+    .data(nodes).enter().append('g')
+    .attr('class','node-g')
+    .style('cursor','pointer');
+
+  // Outer halo — hubs get bigger + lime
+  node.append('circle')
+    .attr('class','halo')
+    .attr('r', d => d.r + (d.isHub ? 14 : 8))
+    .attr('fill','none')
+    .attr('stroke', d => d.isHub ? '#CCFF00' : d.color)
+    .attr('stroke-width', d => d.isHub ? 1.4 : 1)
+    .attr('opacity', d => d.isHub ? 0.5 : 0.2);
+
+  // Inner ring on hubs — extra emphasis
+  node.filter(d => d.isHub).append('circle')
+    .attr('class','hub-ring')
+    .attr('r', d => d.r + 5)
+    .attr('fill','none')
+    .attr('stroke','#CCFF00')
+    .attr('stroke-width', 0.8)
+    .attr('opacity', 0.3);
+
+  node.append('circle')
+    .attr('class','core')
+    .attr('r', d => d.r)
+    .attr('fill', d => d.color)
+    .attr('stroke', '#0a0a0a')
+    .attr('stroke-width', 2)
+    .attr('filter','url(#nodeGlow)');
+
+  node.append('text')
+    .attr('y', d => d.r + 16)
+    .attr('text-anchor','middle')
+    .attr('font-family','IBM Plex Mono, monospace')
+    .attr('font-size', d => Math.max(9, Math.min(11, 8 + d.degree*0.4)))
+    .attr('fill', '#a8a59c')
+    .attr('letter-spacing','0.04em')
+    .text(d => d.label.length > 22 ? d.label.slice(0,20)+'…' : d.label);
+
+  _bigSim = d3.forceSimulation(nodes)
+    .alphaDecay(0.003)
+    .velocityDecay(0.72)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(d => d.cross ? 170 : 110).strength(0.32))
+    .force('charge', d3.forceManyBody().strength(-380).distanceMax(420))
+    .force('collide', d3.forceCollide().radius(d => d.r + 38).strength(0.9))  // room for label below
+    .force('center', d3.forceCenter(w/2, h/2))
+    .force('x', d3.forceX(w/2).strength(0.02))   // weaker center pull = more spread
+    .force('y', d3.forceY(h/2).strength(0.02))
+    .force('cluster', alpha => {
+      // Looser type grouping
+      nodes.forEach(n => {
+        const c = centers[n.type]; if (!c) return;
+        n.vx += (c.x - n.x) * 0.025 * alpha;
+        n.vy += (c.y - n.y) * 0.025 * alpha;
+      });
+    })
+    .force('flow', () => {
+      // murmuration: phased per-node sin/cos perturb + drift toward swarm avg velocity
+      const t = performance.now() * 0.00018;
+      let avx = 0, avy = 0, count = 0;
+      nodes.forEach(d => { if (d.fx == null) { avx += d.vx; avy += d.vy; count++; } });
+      if (count){ avx /= count; avy /= count; }
+      nodes.forEach((d, i) => {
+        if (d.fx != null) return;
+        const phase = i * 0.42;
+        const fx = (Math.cos(t + phase) + 0.4 * Math.cos(t * 1.7 + phase * 2.1)) * 0.022;
+        const fy = (Math.sin(t * 1.2 + phase) + 0.4 * Math.sin(t * 0.8 + phase * 1.5)) * 0.022;
+        d.vx += fx; d.vy += fy;
+        d.vx += (avx - d.vx) * 0.006;
+        d.vy += (avy - d.vy) * 0.006;
+      });
+    })
+    .on('tick', () => {
+      link.attr('x1', d=>d.source.x).attr('y1', d=>d.source.y)
+          .attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+  _bigSim.alphaTarget(0.025).restart();  // perpetual drift = swarm
+
+  const drag = d3.drag()
+    .on('start', (ev, d) => { if (!ev.active) _bigSim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+    .on('drag',  (ev, d) => { d.fx=ev.x; d.fy=ev.y; })
+    .on('end',   (ev, d) => { if (!ev.active) _bigSim.alphaTarget(0.025); d.fx=null; d.fy=null; });
+  node.call(drag);
+
+  const linkedById = {};
+  links.forEach(l => {
+    const a = typeof l.source==='object' ? l.source.id : l.source;
+    const b = typeof l.target==='object' ? l.target.id : l.target;
+    (linkedById[a] ??= new Set()).add(b);
+    (linkedById[b] ??= new Set()).add(a);
+  });
+  node.on('mouseenter', (ev,d) => {
+      node.style('opacity', n => (n.id===d.id || linkedById[d.id]?.has(n.id)) ? 1 : 0.18);
+      link.style('opacity', l => (l.source.id===d.id || l.target.id===d.id) ? 0.95 : 0.05);
+      link.style('stroke', l => (l.source.id===d.id || l.target.id===d.id) ? '#d97757' : linkColor(l));
+    })
+    .on('mouseleave', () => {
+      node.style('opacity', 1);
+      link.style('opacity', linkOpacity);
+      link.style('stroke', linkColor);
+    })
+    .on('click', (ev, d) => {
+      Vault.state.ui.selectedPageId = d.id;
+      Vault.state.ui.activeView = 'page';
+      Vault.persist(); render();
+    });
+
+  // Neuron pulse — random node fires, halo expands, neighbors flash via links
+  function firePulse(){
+    if (!nodes.length) return;
+    const n = nodes[Math.floor(Math.random() * nodes.length)];
+    const sel = node.filter(d => d.id === n.id);
+    const baseR = n.r;
+    const color = n.color;
+    sel.select('.halo').interrupt()
+      .transition().duration(260).ease(d3.easeQuadOut)
+      .attr('r', baseR + 28).attr('opacity', 0.55).attr('stroke-width', 1.4)
+      .transition().duration(900).ease(d3.easeQuadIn)
+      .attr('r', baseR + 8).attr('opacity', 0.2).attr('stroke-width', 1);
+    sel.select('.core').interrupt()
+      .transition().duration(180).ease(d3.easeQuadOut)
+      .attr('r', baseR + 1.8).attr('fill', '#CCFF00')
+      .transition().duration(700).ease(d3.easeQuadIn)
+      .attr('r', baseR).attr('fill', color);
+    const neighbors = links.filter(l => (l.source.id===n.id || l.target.id===n.id));
+    neighbors.forEach(l => {
+      const otherId = l.source.id === n.id ? l.target.id : l.source.id;
+      link.filter(x => (x.source.id===l.source.id && x.target.id===l.target.id))
+        .interrupt()
+        .transition().duration(220)
+        .attr('stroke', '#CCFF00').attr('opacity', 0.95).attr('stroke-width', 1.6)
+        .transition().duration(700)
+        .attr('stroke', linkColor(l))
+        .attr('opacity', linkOpacity(l)).attr('stroke-width', linkWidth(l));
+      setTimeout(() => {
+        const ns = node.filter(d => d.id === otherId);
+        const nd = nodes.find(d => d.id === otherId);
+        if (!nd) return;
+        ns.select('.core').interrupt()
+          .transition().duration(160).attr('r', nd.r + 0.8)
+          .transition().duration(500).attr('r', nd.r);
+      }, 240);
+    });
+  }
+  _pulseTimer = setInterval(() => {
+    firePulse();
+    if (Math.random() < 0.35) setTimeout(firePulse, 320 + Math.random()*400);
+  }, 1400);
+
+  $('#gZoomIn').onclick  = () => svg.transition().duration(250).call(_bigZoom.scaleBy, 1.4);
+  $('#gZoomOut').onclick = () => svg.transition().duration(250).call(_bigZoom.scaleBy, 1/1.4);
+  $('#gRecenter').onclick = () => {
+    svg.transition().duration(400).call(_bigZoom.transform, d3.zoomIdentity);
+    _bigSim.alpha(0.6).restart();
+  };
+}
+
+function renderSearchView(){
+  const q = Vault.state.ui.searchQuery || '';
+  $('#crumb').innerHTML = `vault / <b>search · "${escapeHtml(q)}"</b>`;
+  $('#mainActions').innerHTML = '';
+  const results = Vault.search(q);
+  $('#mainContent').innerHTML = `
+    <h2 class="mono" style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:16px">${results.length} result${results.length===1?'':'s'} for "${escapeHtml(q)}"</h2>
+    ${results.length ? results.map(r => `
+      <div class="palette-result" data-result-kind="${r.kind}" data-result-id="${escapeHtml(r.id)}">
+        <span class="kind">${r.kind}</span>${escapeHtml(r.label)} <span style="color:var(--ink-3);margin-left:8px">${r.hint}</span>
+      </div>`).join('') : '<p class="rail-empty mono">No matches.</p>'}
+  `;
+  $$('[data-result-id]').forEach(el => el.onclick = () => {
+    const k = el.dataset.resultKind, id = el.dataset.resultId;
+    if (k==='page'){ Vault.state.ui.selectedPageId=id; Vault.state.ui.activeView='page'; }
+    else if (k==='tag'){ Vault.state.ui.activeTag=id; Vault.state.ui.activeView='tag'; }
+    Vault.persist(); render();
+  });
+}
+
+function renderTagView(){
+  const tag = Vault.state.ui.activeTag;
+  $('#crumb').innerHTML = `vault / <b>#${escapeHtml(tag)}</b>`;
+  $('#mainActions').innerHTML = '';
+  const pages = Vault.listPages().filter(p => p.tags.includes(tag));
+  $('#mainContent').innerHTML = `
+    <h1 style="font-size:24px;margin-bottom:8px">#${escapeHtml(tag)}</h1>
+    <p class="mono" style="color:var(--ink-3);font-size:11px;margin-bottom:18px">${pages.length} page${pages.length===1?'':'s'}</p>
+    ${pages.map(p => `<div class="palette-result" data-pageid="${p.id}"><b>${escapeHtml(p.title)}</b> <span style="color:var(--ink-3);margin-left:10px">${escapeHtml(p.type)}</span></div>`).join('')}
+  `;
+  $$('[data-pageid]').forEach(el => el.onclick = () => { Vault.state.ui.selectedPageId=el.dataset.pageid; Vault.state.ui.activeView='page'; Vault.persist(); render(); });
+}
+
+/* ============================================================
+   TREE
+============================================================ */
+function renderTree(){
+  const tree = $('#tree');
+  const sel = Vault.state.ui.selectedPageId;
+  const draftCount = Vault.listDrafts().length;
+  const pages = [...Vault.listPages()].sort((a,b)=>a.title.localeCompare(b.title));
+  const tags = Vault.allTags();
+
+  // Group pages by type
+  const byType = {};
+  pages.forEach(p => { (byType[p.type || 'note'] ||= []).push(p); });
+  const collapsed = Vault.state.ui.collapsedFolders ||= {};
+
+  // Folder order from PAGE_TYPES.order, anchor handled separately above
+  const folderOrder = Object.keys(PAGE_TYPES)
+    .filter(t => t !== 'anchor')
+    .sort((a,b) => PAGE_TYPES[a].order - PAGE_TYPES[b].order);
+
+  const folderHtml = folderOrder.map(type => {
+    const ps = byType[type] || [];
+    if (!ps.length) return '';
+    const meta = PAGE_TYPES[type];
+    const isCollapsed = !!collapsed[type];
+    const items = isCollapsed ? '' : ps.map(p => `
+      <div class="tree-item ${sel===p.id && Vault.state.ui.activeView==='page'?'active':''}" data-pageid="${p.id}" style="padding-left:30px">
+        ${escapeHtml(p.title)}${p.status==='draft'?' <span class="sub">DRAFT</span>':''}
+      </div>
+    `).join('');
+    return `
+      <div class="tree-section" data-toggle="${type}" style="cursor:pointer">
+        ${meta.glyph} ${meta.label} <span class="sub">${ps.length}${isCollapsed?' ▸':' ▾'}</span>
+      </div>
+      ${items}
+    `;
+  }).join('');
+
+  tree.innerHTML = `
+    <div class="tree-section">Anchors</div>
+    <div class="tree-item anchor ${sel==='__index__'?'active':''}" data-pageid="__index__">▦ index</div>
+    <div class="tree-item anchor ${sel==='__log__'?'active':''}" data-pageid="__log__">⌚ log</div>
+
+    <div class="tree-section">Drafts ${draftCount ? `<span class="sub">${draftCount}</span>` : ''}</div>
+    <div class="tree-item ${Vault.state.ui.activeView==='drafts'?'active':''}" data-view="drafts">↯ review drafts</div>
+
+    <div class="tree-section" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Pages <span class="sub">${pages.length}</span></span>
+      <button id="addPage" title="New page">+</button>
+    </div>
+    ${folderHtml || '<div class="tree-empty">no pages</div>'}
+
+    <div class="tree-section">Tags</div>
+    ${tags.length ? tags.map(t => `
+      <div class="tree-item ${Vault.state.ui.activeTag===t&&Vault.state.ui.activeView==='tag'?'active':''}" data-tag="${escapeHtml(t)}">#${escapeHtml(t)}</div>
+    `).join('') : '<div class="tree-empty">no tags</div>'}
+
+    <div class="tree-section">Graph</div>
+    <div class="tree-item ${Vault.state.ui.activeView==='graph'?'active':''}" data-view="graph">◌ open graph</div>
+  `;
+
+  // Folder collapse toggling
+  $$('[data-toggle]', tree).forEach(el => el.onclick = () => {
+    const t = el.dataset.toggle;
+    collapsed[t] = !collapsed[t];
+    Vault.persist(); renderTree();
+  });
+
+  $$('[data-pageid]', tree).forEach(el => el.onclick = () => {
+    Vault.state.ui.selectedPageId = el.dataset.pageid;
+    Vault.state.ui.activeView = 'page';
+    Vault.state.ui.editing = false;
+    Vault.persist(); render();
+  });
+  $$('[data-view]', tree).forEach(el => el.onclick = () => {
+    Vault.state.ui.activeView = el.dataset.view; Vault.persist(); render();
+  });
+  $$('[data-tag]', tree).forEach(el => el.onclick = () => {
+    Vault.state.ui.activeTag = el.dataset.tag; Vault.state.ui.activeView = 'tag'; Vault.persist(); render();
+  });
+  $$('[data-sid]', tree).forEach(el => el.onclick = () => {
+    const s = Vault.getSource(el.dataset.sid);
+    if (s?.url) window.open(s.url, '_blank');
+    else toast(s?.summary || 'No URL');
+  });
+  $('#addPage').onclick = (e) => { e.stopPropagation(); openCreatePageModal(''); };
+}
+
+/* ============================================================
+   RIGHT RAIL — backlinks + mini graph + tags
+============================================================ */
+function renderRail(){
+  const rail = $('#rail');
+  const id = Vault.state.ui.selectedPageId;
+  const page = Anchors.asPage(id) || Vault.getPage(id);
+
+  let backlinksHtml = '<div class="rail-empty">none</div>';
+  let tagsHtml = '<div class="rail-empty">none</div>';
+  if (page && !Anchors.isAnchor(page.id)){
+    const links = LinkResolver.linksFor(page);
+    const back = links.backlinks.map(pid => Vault.getPage(pid)).filter(Boolean);
+    if (back.length) backlinksHtml = back.map(p => `<a class="rail-link" data-pageid="${p.id}">← ${escapeHtml(p.title)}</a>`).join('');
+    if (page.tags.length) tagsHtml = page.tags.map(t => `<a class="rail-link" data-tag="${escapeHtml(t)}">#${escapeHtml(t)}</a>`).join('');
+  }
+
+  rail.innerHTML = `
+    <div class="rail-block">
+      <h4>Backlinks</h4>
+      ${backlinksHtml}
+    </div>
+    <div class="rail-block">
+      <h4>Tags</h4>
+      ${tagsHtml}
+    </div>
+  `;
+
+  $$('[data-pageid]', rail).forEach(a => a.onclick = () => { Vault.state.ui.selectedPageId=a.dataset.pageid; Vault.state.ui.activeView='page'; Vault.persist(); render(); });
+  $$('[data-tag]', rail).forEach(a => a.onclick = () => { Vault.state.ui.activeTag=a.dataset.tag; Vault.state.ui.activeView='tag'; Vault.persist(); render(); });
+}
+
+/* ============================================================
+   OPS — ingest / query / lint
+============================================================ */
+function openIngestModal(){
+  IngestFlow.reset();
+  renderIngestModal();
+}
+
+function renderIngestModal(){
+  const f = IngestFlow;
+  const stages = ['source','fetch','preview','done'];
+  const stageMap = { idle:'source', fetching:'fetch', preview:'preview', committing:'preview', done:'done', error:'fetch' };
+  const current = stageMap[f.stage];
+  const stagesHtml = stages.map(s => {
+    const idx = stages.indexOf(s), curIdx = stages.indexOf(current);
+    const cls = s===current ? 'active' : (idx < curIdx ? 'done' : '');
+    return `<div class="stage ${cls}">${s}</div>`;
+  }).join('');
+
+  let body = `<div class="stages">${stagesHtml}</div>`;
+
+  if (f.stage==='idle' || f.stage==='error'){
+    body += `
+      <div class="src-tabs">
+        <button class="src-tab ${f.mode==='url'?'active':''}" data-mode="url">⌖ URL</button>
+        <button class="src-tab ${f.mode==='pdf'?'active':''}" data-mode="pdf">▦ PDF</button>
+        <button class="src-tab ${f.mode==='text'?'active':''}" data-mode="text">✎ Paste text</button>
+      </div>
+    `;
+    if (f.error) body += `<div style="padding:10px;border-left:2px solid var(--rust);background:var(--rust-soft);font-family:var(--mono);font-size:11px;color:var(--ink);margin-bottom:10px">${escapeHtml(f.error)}</div>`;
+
+    if (f.mode==='url'){
+      body += `
+        <label>Web URL</label>
+        <input id="ingUrl" placeholder="https://example.com/article" autofocus />
+        <p class="mono" style="font-size:10px;color:var(--ink-3);margin-top:6px">Fetched via Jina Reader (free, no auth). Paywalled or login-gated pages may be partial.</p>
+      `;
+    } else if (f.mode==='pdf'){
+      body += `
+        <label>PDF file</label>
+        <div class="drop" id="pdfDrop">
+          ⤴ drop PDF here or click to choose
+          <input type="file" id="pdfFile" accept="application/pdf" style="display:none" />
+        </div>
+      `;
+    } else {
+      body += `
+        <label>Title (optional)</label>
+        <input id="ingTitle" placeholder="auto-detect from first line" />
+        <label>Raw text</label>
+        <textarea id="ingText" placeholder="Paste article, transcript, notes…" autofocus></textarea>
+      `;
+    }
+  }
+
+  if (f.stage==='fetching'){
+    body += `<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink-2)"><span class="spinner"></span>Fetching ${f.mode==='pdf'?'and parsing PDF':'and converting to markdown'}…</div>`;
+  }
+
+  if (f.stage==='preview' || f.stage==='committing'){
+    const meta = f.fetched.meta;
+    body += `
+      <div class="fetched-meta">
+        <b>${escapeHtml(f.fetched.type.toUpperCase())}</b> ·
+        ${escapeHtml(f.fetched.text.length.toLocaleString())} chars
+        ${meta?.pages ? ` · ${meta.pages} pages` : ''}
+        ${meta?.sizeKb ? ` · ${meta.sizeKb} KB` : ''}
+        ${f.fetched.url ? ` · <a href="${escapeHtml(f.fetched.url)}" target="_blank" style="color:var(--rust)">source</a>` : ''}
+      </div>
+      <label>Title</label>
+      <input id="ingEditTitle" value="${escapeHtml(f.edits.title)}" />
+      <label>Content (edit before commit)</label>
+      <textarea id="ingEditText" style="min-height:280px">${escapeHtml(f.edits.text)}</textarea>
+      <p class="mono" style="font-size:10px;color:var(--ink-3);margin-top:6px">Commit will: create source page · extract concepts · draft updates to linked pages · append to log.md</p>
+    `;
+  }
+
+  if (f.stage==='done'){
+    const linked = f.linkedPages || [];
+    const concepts = f.conceptStubs || [];
+    const people = f.personStubs || [];
+    const total = 1 + linked.length + concepts.length + people.length;
+    const section = (label, glyph, items, color='var(--lime)') => items.length ? `
+      <div style="margin-bottom:10px">
+        <div class="mono" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px">${glyph} ${label} · ${items.length}</div>
+        <div class="mono" style="font-size:11px;color:var(--ink-2);padding:8px 10px;background:var(--bg-2);border-left:2px solid ${color}">
+          ${items.map(p=>`→ <a class="wikilink" data-jump="${p.id}">${escapeHtml(p.title)}</a>`).join('<br>')}
+        </div>
+      </div>` : '';
+    body += `
+      <div style="padding:14px 0">
+        <div style="color:var(--lime);font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;text-align:center">✓ ${total} page${total===1?'':'s'} written to vault</div>
+        ${section('Source page', PAGE_TYPES[f.sourcePage.type]?.glyph || '⌖', [f.sourcePage], 'var(--rust)')}
+        ${section('Concept stubs', '◇', concepts)}
+        ${section('Person stubs', '☻', people)}
+        ${section('Auto-linked existing', '↔', linked, 'rgba(255,255,255,.3)')}
+      </div>
+    `;
+  }
+
+  // actions per stage
+  let actions = [];
+  if (f.stage==='idle' || f.stage==='error'){
+    actions = [
+      { label:'Cancel', cb: () => { IngestFlow.reset(); closeModal(); }},
+      { label: f.mode==='text' ? 'Load' : 'Fetch', primary:true, cb: () => {
+        if (f.mode==='url'){
+          const url = $('#ingUrl').value.trim();
+          if (!url){ toast('Enter URL'); return; }
+          IngestFlow.fetchUrl(url);
+        } else if (f.mode==='pdf'){
+          const file = $('#pdfFile').files?.[0];
+          if (!file){ toast('Choose a PDF'); return; }
+          IngestFlow.loadPdf(file);
+        } else {
+          const text = $('#ingText').value.trim();
+          if (!text){ toast('Paste some text'); return; }
+          IngestFlow.loadText(text, $('#ingTitle').value.trim());
+        }
+      }}
+    ];
+  } else if (f.stage==='fetching' || f.stage==='committing'){
+    actions = [{ label:'Working…', cb: () => {} }];
+  } else if (f.stage==='preview'){
+    actions = [
+      { label:'← Back', cb: () => { IngestFlow.reset(); renderIngestModal(); }},
+      { label:'Commit', primary:true, cb: () => {
+        IngestFlow.edits.title = $('#ingEditTitle').value.trim();
+        IngestFlow.edits.text = $('#ingEditText').value;
+        IngestFlow.commit();
+      }}
+    ];
+  } else if (f.stage==='done'){
+    actions = [
+      { label:'Ingest another', cb: () => { IngestFlow.reset(); renderIngestModal(); }},
+      { label:'View drafts', primary:true, cb: () => { IngestFlow.reset(); closeModal(); }}
+    ];
+  }
+
+  openModal({ title: 'Ingest source', body, actions });
+
+  // wire dynamic handlers
+  $$('.src-tab').forEach(b => b.onclick = () => IngestFlow.setMode(b.dataset.mode));
+  $$('[data-jump]').forEach(a => a.onclick = () => {
+    Vault.state.ui.selectedPageId = a.dataset.jump;
+    Vault.state.ui.activeView = 'page';
+    Vault.persist();
+    IngestFlow.reset(); closeModal(); render();
+  });
+  const drop = $('#pdfDrop'), pdfInput = $('#pdfFile');
+  if (drop && pdfInput){
+    drop.onclick = () => pdfInput.click();
+    pdfInput.onchange = () => { if (pdfInput.files[0]) IngestFlow.loadPdf(pdfInput.files[0]); };
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('drag'); };
+    drop.ondragleave = () => drop.classList.remove('drag');
+    drop.ondrop = e => {
+      e.preventDefault(); drop.classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type==='application/pdf') IngestFlow.loadPdf(file);
+      else toast('Drop a PDF file');
+    };
+  }
+}
+
+function openQueryModal(){
+  openModal({
+    title: 'Query vault',
+    body: `
+      <label>Question</label>
+      <textarea id="qInput" placeholder="What is risk management in this vault?"></textarea>
+      <div id="qAnswer"></div>
+    `,
+    actions: [
+      { label:'Close', cb: closeModal },
+      { label:'Ask', primary:true, cb: async () => {
+        const q = $('#qInput').value.trim();
+        if (!q){ toast('Enter a question'); return; }
+        $('#qAnswer').innerHTML = `<div style="padding:24px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink-2)"><span class="spinner"></span>Thinking… [${Settings.data.provider}]</div>`;
+        let answer, citations;
+        try {
+          const out = await llm.query(q);
+          answer = out.answer; citations = out.citations;
+        } catch(e){
+          $('#qAnswer').innerHTML = `<div style="padding:14px;border-left:2px solid var(--rust);background:var(--rust-soft);font-family:var(--mono);font-size:11px;color:var(--ink)">${escapeHtml(e.message)}</div>`;
+          return;
+        }
+        $('#qAnswer').innerHTML = `
+          <div class="answer">
+            <h4>Answer</h4>
+            ${renderMarkdown(answer)}
+            ${citations.length ? `<div class="citations">${citations.map(c=>`<a data-cite="${c.id}">${escapeHtml(c.title)}</a>`).join('')}</div>` : ''}
+          </div>
+          <button class="op" id="qSave" style="margin-top:10px">Save as synthesis page</button>
+        `;
+        $$('#qAnswer [data-cite]').forEach(a => a.onclick = () => { Vault.state.ui.selectedPageId=a.dataset.cite; Vault.state.ui.activeView='page'; Vault.persist(); closeModal(); render(); });
+        $('#qSave').onclick = () => {
+          const p = Page.create({
+            title: q.slice(0,60),
+            type:'synthesis', tags:['synthesis'], status:'draft',
+            sources: citations.map(c=>c.id),
+            md: `# ${q}\n\n## Answer\n\n${answer}\n\n## Citations\n\n${citations.map(c=>`- [[${c.title}]]`).join('\n')}\n`
+          });
+          Vault.putPage(p);
+          Vault.appendLog(LogEntry.create({ op:'query', summary:`Saved synthesis: "${q.slice(0,60)}"` }));
+          closeModal();
+          Vault.state.ui.selectedPageId=p.id; Vault.state.ui.activeView='page'; Vault.persist(); render();
+          toast('Saved as synthesis page');
+        };
+      }}
+    ]
+  });
+  setTimeout(()=>$('#qInput')?.focus(), 50);
+}
+
+async function runLint(){
+  toast('Linting…');
+  const issues = await llm.lint();
+  if (!issues.length){ toast('Vault clean — no issues found'); return; }
+  // Convert to drafts so user can review
+  issues.forEach(i => {
+    Vault.putDraft(Draft.create({
+      kind:`lint-${i.kind}`,
+      target: i.page,
+      content: `Lint issue on [[${Vault.getPage(i.page)?.title || i.page}]]: ${i.detail}`,
+      reasoning: `Linter found: ${i.kind}`
+    }));
+  });
+  Vault.appendLog(LogEntry.create({ op:'lint', summary: `${issues.length} issue${issues.length===1?'':'s'} → drafts` }));
+  Vault.state.ui.activeView='drafts'; Vault.persist(); render();
+  toast(`${issues.length} lint issues queued as drafts`);
+}
+
+function applyDraft(id){
+  const d = Vault.listDrafts().find(x => x.id===id);
+  if (!d) return;
+  if (d.kind==='create-page' || d.kind==='create-source-page'){
+    const titleMatch = d.content.match(/^#\s+(.+)$/m);
+    const title = titleMatch ? titleMatch[1] : 'Untitled';
+    const p = Page.create({ title, md: d.content, tags:[], type: d.kind==='create-source-page' ? 'source' : 'concept', status:'draft' });
+    Vault.putPage(p);
+    Vault.state.ui.selectedPageId = p.id;
+    Vault.state.ui.activeView = 'page';
+  } else if (d.kind==='append' && d.target){
+    const p = Vault.getPage(d.target);
+    if (p){ p.md += d.content; Vault.putPage(p); }
+  } else if (d.kind.startsWith('lint-')){
+    // just acknowledge — linter draft has no auto-fix yet
+  }
+  Vault.removeDraft(id);
+  Vault.appendLog(LogEntry.create({ op:'apply-draft', summary: `Applied: ${d.kind}` }));
+  Vault.persist(); render(); toast('Applied');
+}
+
+/* ============================================================
+   MODALS
+============================================================ */
+function openModal({title, body, actions}){
+  $('#modalTitle').textContent = title;
+  $('#modalBody').innerHTML = body;
+  $('#modalFoot').innerHTML = '';
+  actions.forEach(a => {
+    const b = document.createElement('button');
+    b.textContent = a.label;
+    if (a.primary) b.classList.add('primary');
+    b.onclick = a.cb;
+    $('#modalFoot').appendChild(b);
+  });
+  $('#modalBg').classList.add('show');
+}
+function closeModal(){ $('#modalBg').classList.remove('show'); }
+
+function openSettingsModal(){
+  Settings.load();
+  const s = Settings.data;
+  const preset = PROVIDER_PRESETS[s.provider];
+  const isMock = s.provider==='mock';
+  const isCustom = s.provider==='custom';
+  const needsKey = preset?.needsKey;
+
+  const providerTabs = [
+    ['mock','⌘ Mock'],
+    ['openai','⎈ OpenAI'],
+    ['openrouter','⎈ OpenRouter'],
+    ['anthropic','⎈ Anthropic'],
+    ['ollama','⌂ Ollama'],
+    ['custom','✎ Custom']
+  ].map(([k,lbl]) => `<button class="src-tab ${s.provider===k?'active':''}" data-prov="${k}">${lbl}</button>`).join('');
+
+  const keyPlaceholder = ({openai:'sk-…',anthropic:'sk-ant-…',openrouter:'sk-or-…',custom:'sk-…'})[s.provider] || '';
+  const providerNote =
+    s.provider==='anthropic' ? `<div class="form-callout"><b style="color:var(--lime)">✓ Prompt caching active</b> — vault corpus cached on system prompt. Repeat queries within 5min are ~90% cheaper.</div>` :
+    s.provider==='openrouter' ? `<div class="form-callout">OpenRouter routes to many providers under one key. Hermes models at <code>nousresearch/hermes-3-llama-3.1-405b</code>. Free models available — see openrouter.ai/models.</div>` :
+    s.provider==='ollama' ? `<div class="form-callout">Ollama runs locally — no key needed. Run <code>ollama serve</code> with <code>OLLAMA_ORIGINS=*</code> to enable browser access.</div>` :
+    s.provider==='custom' ? `<div class="form-callout">Any OpenAI-compatible endpoint: Together, Groq, Fireworks, vLLM, LM Studio.</div>` : '';
+
+  openModal({
+    title:'Settings — LLM Provider',
+    body:`
+      <div class="form-section">
+        <label style="margin-bottom:10px">Provider</label>
+        <div class="src-tabs grid-3">${providerTabs}</div>
+      </div>
+
+      ${isMock ? `
+        <div class="form-section">
+          <div class="form-callout">
+            <b style="color:var(--lime)">Offline heuristic mode.</b> Concepts extracted via regex, queries match keyword overlap. No tokens spent. Use for testing vault flow — switch to a real provider for Karpathy-quality extraction.
+          </div>
+        </div>
+      ` : `
+        <div class="form-section">
+          <div class="form-row">
+            <label>Endpoint</label>
+            ${isCustom
+              ? `<input id="setBaseUrl" value="${escapeHtml(s.baseUrl)}" placeholder="https://api.together.xyz/v1" />`
+              : `<input value="${escapeHtml(preset.baseUrl)}" disabled style="opacity:.5" />`}
+          </div>
+
+          ${needsKey ? `
+            <div class="form-row">
+              <label>API key</label>
+              <input id="setKey" type="password" value="${escapeHtml(s.apiKey)}" placeholder="${keyPlaceholder}" autocomplete="off" />
+            </div>
+          ` : ''}
+
+          <div class="form-row">
+            <label>Model</label>
+            <input id="setModel" value="${escapeHtml(s.model || preset.defaultModel)}" placeholder="${escapeHtml(preset.defaultModel)}" />
+          </div>
+
+          <div class="form-row">
+            <label>Max tokens</label>
+            <input id="setMax" type="number" value="${s.maxTokens}" min="500" max="16000" step="100" />
+          </div>
+
+          <div class="form-hint" style="margin-top:10px">${escapeHtml(preset.modelHint)}</div>
+        </div>
+
+        ${providerNote ? `<div class="form-section">${providerNote}</div>` : ''}
+
+        <div class="form-section">
+          <div class="form-hint">
+            Key stored in browser localStorage. Personal use only — exposed to this page. Don't share machine.
+          </div>
+        </div>
+      `}
+
+      <div class="form-section">
+        <label style="margin-bottom:10px;color:var(--rust)">⎙ Vault Backup & Revert</label>
+        <div class="form-hint" style="margin-bottom:10px">
+          localStorage is browser-local and can be cleared. Export regularly. ${LocalStorageAdapter.saveErrors ? `<b style="color:var(--rust)">⚠ Last save failed (${LocalStorageAdapter.saveErrors}× this session)</b>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="op" id="vaultExport">⤓ Export vault.json</button>
+          <button class="op" id="vaultImport">⤒ Import vault.json</button>
+          <input type="file" id="vaultImportFile" accept="application/json" style="display:none" />
+          <button class="op" id="vaultRevert" ${!Vault.lastBatch() ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>↩ Revert last ingest</button>
+        </div>
+        ${Vault.lastBatch() ? `<div class="form-hint" style="margin-top:10px">Last ingest: <b style="color:var(--ink)">${escapeHtml(Vault.lastBatch().sourceTitle || '?')}</b> · ${Vault.lastBatch().created.length} created · ${Vault.lastBatch().updated.length} updated</div>` : ''}
+      </div>
+
+      <div class="form-section">
+        <label style="margin-bottom:10px;color:var(--rust)">⎇ GitHub Sync</label>
+        <div class="form-row">
+          <label>Owner</label>
+          <input id="ghOwner" value="${escapeHtml(GitHubSync.config.owner)}" placeholder="your-github-username" />
+        </div>
+        <div class="form-row">
+          <label>Repo</label>
+          <input id="ghRepo" value="${escapeHtml(GitHubSync.config.repo)}" placeholder="my-vault" />
+        </div>
+        <div class="form-row">
+          <label>Branch</label>
+          <input id="ghBranch" value="${escapeHtml(GitHubSync.config.branch)}" placeholder="main" />
+        </div>
+        <div class="form-row">
+          <label>File path</label>
+          <input id="ghPath" value="${escapeHtml(GitHubSync.config.path)}" placeholder="vault.json" />
+        </div>
+        <div class="form-row">
+          <label>PAT</label>
+          <input id="ghToken" type="password" value="${escapeHtml(GitHubSync.config.token)}" placeholder="github_pat_…" autocomplete="off" />
+        </div>
+        <div class="form-hint" style="margin-top:10px">
+          Create token at <code>github.com/settings/tokens</code> with <code>repo</code> scope (fine-grained or classic). Vault syncs as a single JSON file at the path above. Multi-device: open this app on another browser/phone with the same config — it pulls the same file.
+        </div>
+        ${GitHubSync.configured() ? `<div class="form-callout" style="margin-top:10px"><b style="color:var(--lime)">${GitHubSync.state==='synced'?'✓ Synced':'Configured'}</b> — repo <code>${escapeHtml(GitHubSync.config.owner)}/${escapeHtml(GitHubSync.config.repo)}</code>${GitHubSync.lastError?` · last error: ${escapeHtml(GitHubSync.lastError.slice(0,80))}`:''}</div>` : ''}
+      </div>
+    `,
+    actions: [
+      { label:'Cancel', cb: closeModal },
+      ...(!isMock ? [{ label:'Test LLM', cb: async () => {
+        const prev = { ...Settings.data };
+        if (isCustom) Settings.data.baseUrl = $('#setBaseUrl')?.value.trim() || '';
+        if (needsKey) Settings.data.apiKey = $('#setKey')?.value.trim() || '';
+        Settings.data.model = $('#setModel')?.value.trim() || preset.defaultModel;
+        toast('Testing LLM…');
+        try {
+          await LLM.call({ system:'Reply with one word.', user:'Say: ok', maxTokens: 20 });
+          toast('✓ LLM reachable');
+        } catch(e){
+          toast('✗ ' + e.message.slice(0,100));
+        } finally {
+          Object.assign(Settings.data, prev);
+        }
+      }}] : []),
+      { label:'Test GitHub', cb: async () => {
+        const prevGh = { ...GitHubSync.config };
+        GitHubSync.config.owner = $('#ghOwner').value.trim();
+        GitHubSync.config.repo = $('#ghRepo').value.trim();
+        GitHubSync.config.branch = $('#ghBranch').value.trim() || 'main';
+        GitHubSync.config.path = $('#ghPath').value.trim() || 'vault.json';
+        GitHubSync.config.token = $('#ghToken').value.trim();
+        if (!GitHubSync.configured()){ toast('Fill owner, repo, token first'); Object.assign(GitHubSync.config, prevGh); return; }
+        toast('Testing GitHub…');
+        try {
+          // HEAD-style: GET repo metadata
+          const c = GitHubSync.config;
+          const res = await fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`, { headers: GitHubSync.headers() });
+          if (!res.ok) throw new Error(`${res.status}: ${(await res.text()).slice(0,120)}`);
+          toast('✓ GitHub repo reachable');
+        } catch(e){
+          toast('✗ ' + e.message.slice(0,100));
+        } finally {
+          Object.assign(GitHubSync.config, prevGh);
+        }
+      }},
+      { label:'Save', primary:true, cb: async () => {
+        // LLM settings
+        if (!isMock){
+          if (isCustom) Settings.data.baseUrl = $('#setBaseUrl')?.value.trim() || '';
+          if (needsKey) Settings.data.apiKey = $('#setKey')?.value.trim() || '';
+          Settings.data.model = $('#setModel')?.value.trim() || preset.defaultModel;
+          Settings.data.maxTokens = parseInt($('#setMax').value, 10) || 2000;
+        }
+        Settings.save(); applyProvider();
+
+        // GitHub settings
+        const ghChanged = $('#ghOwner').value.trim() !== GitHubSync.config.owner ||
+                          $('#ghRepo').value.trim() !== GitHubSync.config.repo ||
+                          $('#ghToken').value.trim() !== GitHubSync.config.token ||
+                          $('#ghBranch').value.trim() !== GitHubSync.config.branch ||
+                          $('#ghPath').value.trim() !== GitHubSync.config.path;
+        GitHubSync.config.owner = $('#ghOwner').value.trim();
+        GitHubSync.config.repo = $('#ghRepo').value.trim();
+        GitHubSync.config.branch = $('#ghBranch').value.trim() || 'main';
+        GitHubSync.config.path = $('#ghPath').value.trim() || 'vault.json';
+        GitHubSync.config.token = $('#ghToken').value.trim();
+        if (ghChanged) GitHubSync.sha = null;  // reset SHA on config change
+        GitHubSync.save();
+
+        closeModal(); render();
+        toast(`Saved — ${isMock?'mock':preset.label}${GitHubSync.configured()?' + GitHub':''}`);
+
+        // If GitHub just configured, do initial sync
+        if (ghChanged && GitHubSync.configured()){
+          toast('Initializing GitHub sync…');
+          try {
+            const r = await GitHubSync.manualSync();
+            toast(r.pulled ? '✓ Pulled vault from GitHub' : '✓ Pushed initial vault to GitHub');
+          } catch(e){
+            toast('GitHub: ' + e.message.slice(0,80));
+          }
+        }
+      }}
+    ]
+  });
+
+  // provider tab switching — update model field default + rerender
+  $$('.src-tab[data-prov]').forEach(b => b.onclick = () => {
+    const newProv = b.dataset.prov;
+    Settings.data.provider = newProv;
+    // Reset model to provider default if switching providers
+    const newPreset = PROVIDER_PRESETS[newProv];
+    if (newPreset && newPreset.defaultModel) Settings.data.model = newPreset.defaultModel;
+    Settings.save(); applyProvider();
+    openSettingsModal();
+  });
+
+  // Export
+  const expBtn = $('#vaultExport');
+  if (expBtn) expBtn.onclick = () => {
+    const blob = new Blob([JSON.stringify(Vault.state, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vault-${today()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`Exported ${Vault.state.pages.length} pages`);
+  };
+
+  // Import
+  const impBtn = $('#vaultImport');
+  const impFile = $('#vaultImportFile');
+  if (impBtn && impFile){
+    impBtn.onclick = () => impFile.click();
+    impFile.onchange = async () => {
+      const file = impFile.files?.[0]; if (!file) return;
+      const txt = await file.text();
+      let parsed;
+      try { parsed = JSON.parse(txt); } catch(e){ toast('Invalid JSON: ' + e.message.slice(0,80)); return; }
+      if (!parsed.pages || !Array.isArray(parsed.pages)){ toast('Not a valid vault.json'); return; }
+      const mode = confirm(`Import vault?\n\nIncoming: ${parsed.pages.length} pages, ${(parsed.sources||[]).length} sources.\nCurrent: ${Vault.state.pages.length} pages, ${Vault.state.sources.length} sources.\n\nOK = REPLACE current vault.\nCancel = MERGE (newer .updated wins).`);
+      if (mode === null) return;
+      if (mode){
+        Vault.state = Vault.migrate(parsed);
+      } else {
+        Vault.state = GitHubSync._merge(parsed, Vault.state);
+        Vault.state = Vault.migrate(Vault.state);
+      }
+      Vault.persist(); closeModal(); render();
+      toast(mode ? 'Vault replaced' : 'Vault merged');
+    };
+  }
+
+  // Revert last ingest
+  const revBtn = $('#vaultRevert');
+  if (revBtn && Vault.lastBatch()) revBtn.onclick = () => {
+    const b = Vault.lastBatch();
+    const msg = `Revert last ingest "${b.sourceTitle}"?\n\n• Delete ${b.created.length} created page${b.created.length===1?'':'s'} (only if not yet edited+promoted)\n• Strip "Mentioned in" lines from ${b.updated.length} updated page${b.updated.length===1?'':'s'}\n• Drop source record\n\nCascade delete also removes draft stubs spawned from each created page.`;
+    if (!confirm(msg)) return;
+    const r = Vault.revertBatch(b.id);
+    if (!r.ok){ toast('Revert failed: ' + r.reason); return; }
+    Vault.appendLog(LogEntry.create({ op:'revert', summary:`Reverted ingest "${b.sourceTitle}" — ${r.deleted} deleted, ${r.kept} kept (user-edited)` }));
+    closeModal(); render();
+    toast(`Reverted · ${r.deleted} deleted${r.kept?` · ${r.kept} kept`:''}`);
+  };
+}
+
+function openCreatePageModal(prefillTitle=''){
+  openModal({
+    title:'New page',
+    body:`
+      <label>Title</label>
+      <input id="npTitle" value="${escapeHtml(prefillTitle)}" />
+      <label>Tags (comma-separated)</label>
+      <input id="npTags" placeholder="risk, sizing" />
+      <label>Body (markdown)</label>
+      <textarea id="npBody">## Summary\n\n</textarea>
+    `,
+    actions:[
+      { label:'Cancel', cb: closeModal },
+      { label:'Create', primary:true, cb: () => {
+        const title = $('#npTitle').value.trim();
+        if (!title){ toast('Title required'); return; }
+        if (Vault.getPageByTitle(title)){ toast('Page already exists'); return; }
+        const tags = $('#npTags').value.split(',').map(s=>s.trim()).filter(Boolean);
+        const md = `# ${title}\n\n${$('#npBody').value}`;
+        const p = Page.create({ title, tags, md });
+        Vault.putPage(p);
+        Vault.appendLog(LogEntry.create({ op:'create', summary:`Created page [[${title}]]` }));
+        Vault.state.ui.selectedPageId = p.id; Vault.state.ui.activeView='page'; Vault.persist();
+        closeModal(); render(); toast('Created');
+      }}
+    ]
+  });
+  setTimeout(()=>$('#npTitle')?.focus(), 50);
+}
+
+/* ============================================================
+   COMMAND PALETTE (⌘K / Ctrl-K)
+============================================================ */
+const Palette = {
+  open(){ $('#paletteModal').classList.add('show'); $('#paletteInput').value=''; $('#paletteResults').innerHTML=''; setTimeout(()=>$('#paletteInput').focus(),20); this.selected=0; },
+  close(){ $('#paletteModal').classList.remove('show'); },
+  selected:0,
+  update(q){
+    const results = Vault.search(q);
+    this.results = results;
+    $('#paletteResults').innerHTML = results.map((r,i) => `
+      <div class="palette-result ${i===0?'selected':''}" data-i="${i}">
+        <span class="kind">${r.kind}</span>${escapeHtml(r.label)} <span style="color:var(--ink-3);margin-left:8px">${r.hint}</span>
+      </div>
+    `).join('') || `<div class="palette-result" style="cursor:default;color:var(--ink-3)">no matches</div>`;
+    this.selected = 0;
+    $$('.palette-result').forEach(el => el.onclick = () => this.pick(parseInt(el.dataset.i)));
+  },
+  pick(i){
+    const r = this.results?.[i]; if (!r) return;
+    if (r.kind==='page'){ Vault.state.ui.selectedPageId=r.id; Vault.state.ui.activeView='page'; }
+    else if (r.kind==='source'){ const s=Vault.getSource(r.id); if (s?.url) window.open(s.url,'_blank'); }
+    else if (r.kind==='tag'){ Vault.state.ui.activeTag=r.id; Vault.state.ui.activeView='tag'; }
+    Vault.persist(); this.close(); render();
+  }
+};
+
+/* ============================================================
+   ROOT RENDER
+============================================================ */
+function render(){
+  const view = Vault.state.ui.activeView || 'page';
+  if (view !== 'graph') clearBigGraph();
+  renderTree();
+  (Views[view] || renderPageView)();
+  renderRail();
+  Vault.refreshStats();
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+function boot(){
+  Vault.init();
+  GitHubSync.load();
+
+  applyProvider();
+
+  // If GitHub configured, attempt background pull on boot
+  if (GitHubSync.configured()){
+    GitHubSync.pull().then(remote => {
+      if (remote){
+        // Fresh device (no prior localStorage) → fully replace with remote
+        // Returning device → merge by newer .updated wins
+        const next = Vault._wasEmpty ? remote : GitHubSync._merge(remote, Vault.state);
+        Vault.state = Vault.migrate(next);
+        storage.save(Vault.state);
+        render();
+        toast(Vault._wasEmpty ? '✓ Loaded vault from GitHub' : '✓ Pulled + merged from GitHub');
+      } else {
+        // Empty repo — push our seed
+        GitHubSync.push(Vault.state, 'initial vault commit').then(() => toast('✓ Initialized GitHub vault'));
+      }
+    }).catch(e => {
+      console.warn('GitHub boot pull failed:', e.message);
+      toast('GitHub: ' + e.message.slice(0,80));
+    });
+  }
+
+  $('#opIngest').onclick = openIngestModal;
+  $('#opQuery').onclick = openQueryModal;
+  $('#opLint').onclick = runLint;
+  $('#opSync').onclick = async () => {
+    if (!GitHubSync.configured()){ toast('Configure GitHub in ⚙ Settings first'); openSettingsModal(); return; }
+    toast('Syncing with GitHub…');
+    try {
+      const r = await GitHubSync.manualSync();
+      toast(r.pulled ? '✓ Pulled + pushed' : '✓ Initial commit pushed');
+    } catch(e){
+      toast('✗ ' + e.message.slice(0,100));
+    }
+  };
+  $('#opSettings').onclick = openSettingsModal;
+
+  $('#paletteTrigger').onclick = () => Palette.open();
+  $('#paletteInput').oninput = (e) => Palette.update(e.target.value);
+  $('#paletteInput').onkeydown = (e) => {
+    if (e.key==='Escape') Palette.close();
+    if (e.key==='Enter') Palette.pick(Palette.selected);
+    if (e.key==='ArrowDown' || e.key==='ArrowUp'){
+      e.preventDefault();
+      const max = (Palette.results?.length || 1) - 1;
+      Palette.selected = Math.max(0, Math.min(max, Palette.selected + (e.key==='ArrowDown'?1:-1)));
+      $$('.palette-result').forEach((el,i)=>el.classList.toggle('selected', i===Palette.selected));
+    }
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey||e.ctrlKey) && e.key==='k'){ e.preventDefault(); Palette.open(); }
+    if (e.key==='Escape'){ closeModal(); Palette.close(); }
+    if ((e.metaKey||e.ctrlKey) && e.key==='i'){ e.preventDefault(); openIngestModal(); }
+    if ((e.metaKey||e.ctrlKey) && e.key==='/'){ e.preventDefault(); openQueryModal(); }
+  });
+
+  $('#modalBg').onclick = (e) => { if (e.target.id==='modalBg') closeModal(); };
+
+  window.addEventListener('resize', () => { if (Vault.state.ui.activeView==='graph') render(); });
+
+  render();
+
+  // expose for debugging
+  window.Vault = Vault; window.LinkResolver = LinkResolver; window.GraphProjection = GraphProjection; window.MockLLM = MockLLM;
+}
+
+boot();
+</script>
+</body>
+</html>

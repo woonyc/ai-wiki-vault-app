@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\User\\\\Documents\\\\Cowork Playground\\\\AI_Wiki_Vault\")",
+      "WebFetch(domain:gist.github.com)"
+    ]
+  }
+}

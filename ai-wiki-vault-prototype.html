@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Wiki Vault — Obsidian-Inspired Research OS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: {
+              950: '#09090f',
+              900: '#11111b',
+              850: '#171724',
+              800: '#1f1f2e',
+              700: '#2a2a3d',
+              600: '#3a3756',
+              500: '#7c5cff',
+              400: '#a78bfa',
+              300: '#c4b5fd'
+            }
+          },
+          boxShadow: {
+            glow: '0 0 0 1px rgba(167,139,250,.16), 0 20px 70px rgba(0,0,0,.35)',
+            purple: '0 12px 40px rgba(124,92,255,.18)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(124, 92, 255, 0.16), transparent 34rem),
+        radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.10), transparent 28rem),
+        #09090f;
+    }
+    .glass {
+      background: rgba(17, 17, 27, 0.78);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .pane {
+      background: rgba(23, 23, 36, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .soft-border {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .node {
+      cursor: pointer;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .node:hover {
+      filter: brightness(1.15);
+    }
+    .tab-active {
+      background: rgba(124, 92, 255, .18);
+      color: #f4f0ff;
+      border-color: rgba(167, 139, 250, .32);
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .hide-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(167,139,250,.22);
+      border-radius: 999px;
+    }
+    .markdown h1 { font-size: 1.6rem; font-weight: 750; margin-bottom: .65rem; color: #f6f2ff; }
+    .markdown h2 { font-size: 1.05rem; font-weight: 700; margin-top: 1.2rem; margin-bottom: .4rem; color: #ddd6fe; }
+    .markdown p, .markdown li { color: #cbd5e1; line-height: 1.65; }
+    .markdown ul { list-style: disc; padding-left: 1.2rem; }
+    .markdown code { background: rgba(255,255,255,.07); padding: .12rem .32rem; border-radius: .35rem; color: #c4b5fd; }
+    .markdown a { color: #a78bfa; }
+  </style>
+</head>
+
+<body class="text-slate-100 min-h-screen overflow-hidden">
+  <div id="app" class="h-screen flex flex-col">
+    <header class="h-16 px-4 md:px-6 flex items-center justify-between glass border-x-0 border-t-0 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-violet-400 to-indigo-600 shadow-purple flex items-center justify-center font-black">Ψ</div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold tracking-tight truncate">AI Wiki Vault</h1>
+            <span class="hidden sm:inline text-[10px] uppercase tracking-[.18em] text-violet-300 bg-violet-400/10 px-2 py-1 rounded-full soft-border">prototype</span>
+          </div>
+          <p class="text-xs text-slate-400 truncate">Obsidian-inspired, cloud-native AI research wiki</p>
+        </div>
+      </div>
+
+      <div class="hidden md:flex flex-1 max-w-xl mx-6">
+        <div class="relative w-full">
+          <input id="globalSearch" type="text" placeholder="Search pages, sources, concepts..."
+            class="w-full bg-white/5 soft-border rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-violet-400/60 placeholder:text-slate-500">
+          <span class="absolute right-3 top-2.5 text-xs text-slate-500">⌘K</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="exportBtn" class="hidden sm:inline-flex text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 soft-border text-slate-300">Export JSON</button>
+        <div class="text-xs text-emerald-300 bg-emerald-400/10 px-3 py-2 rounded-xl soft-border">Synced mock</div>
+      </div>
+    </header>
+
+    <main class="flex-1 min-h-0 grid grid-cols-12 gap-3 p-3 md:p-4">
+      <aside class="col-span-12 md:col-span-3 xl:col-span-2 pane rounded-3xl overflow-hidden flex flex-col min-h-0">
+        <div class="p-4 border-b border-white/5">
+          <p class="text-xs uppercase tracking-[.2em] text-slate-500 mb-3">Compartments</p>
+          <div id="compartmentList" class="space-y-2"></div>
+        </div>
+
+        <div class="p-4 border-b border-white/5">
+          <p class="text-xs uppercase tracking-[.2em] text-slate-500 mb-3">Navigation</p>
+          <nav id="tabList" class="grid grid-cols-2 md:grid-cols-1 gap-2">
+            <button data-tab="inbox" class="tab-btn text-left px-3 py-2 rounded-xl text-sm soft-border hover:bg-white/5">Inbox</button>
+            <button data-tab="wiki" class="tab-btn text-left px-3 py-2 rounded-xl text-sm soft-border hover:bg-white/5">Wiki</button>
+            <button data-tab="graph" class="tab-btn text-left px-3 py-2 rounded-xl text-sm soft-border hover:bg-white/5">Graph</button>
+            <button data-tab="research" class="tab-btn text-left px-3 py-2 rounded-xl text-sm soft-border hover:bg-white/5">Research</button>
+            <button data-tab="review" class="tab-btn text-left px-3 py-2 rounded-xl text-sm soft-border hover:bg-white/5">Review Queue</button>
+          </nav>
+        </div>
+
+        <div class="p-4 flex-1 overflow-auto hide-scrollbar">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs uppercase tracking-[.2em] text-slate-500">Pages</p>
+            <button id="newPageBtn" class="text-xs text-violet-300 hover:text-violet-100">+ New</button>
+          </div>
+          <div id="pageList" class="space-y-1"></div>
+        </div>
+      </aside>
+
+      <section class="col-span-12 md:col-span-6 xl:col-span-7 pane rounded-3xl overflow-hidden min-h-0 flex flex-col">
+        <div class="px-4 py-3 border-b border-white/5 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p id="crumb" class="text-xs text-violet-300 truncate">Trading / Finance · Inbox</p>
+            <h2 id="mainTitle" class="font-bold text-lg truncate">Source Inbox</h2>
+          </div>
+          <div id="viewActions" class="flex items-center gap-2"></div>
+        </div>
+
+        <div id="mainContent" class="flex-1 overflow-auto hide-scrollbar p-4 md:p-5"></div>
+      </section>
+
+      <aside class="col-span-12 md:col-span-3 xl:col-span-3 pane rounded-3xl overflow-hidden min-h-0 flex flex-col">
+        <div class="p-4 border-b border-white/5">
+          <p class="text-xs uppercase tracking-[.2em] text-slate-500 mb-2">Context Panel</p>
+          <h3 id="contextTitle" class="font-semibold">AI Librarian</h3>
+          <p id="contextSubtitle" class="text-xs text-slate-400 mt-1">Review proposals before they enter your wiki.</p>
+        </div>
+        <div id="contextContent" class="p-4 flex-1 overflow-auto hide-scrollbar"></div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const initialState = {
+      activeCompartment: 'trading',
+      activeTab: 'inbox',
+      selectedPageId: 'risk-management',
+      selectedNodeId: null,
+      compartments: [
+        {
+          id: 'trading',
+          name: 'Trading / Finance',
+          icon: '📈',
+          accent: '#a78bfa',
+          description: 'Small-cap shorts, 13F research, risk, catalysts.',
+          rules: [
+            'Prefer primary sources and dates.',
+            'Separate fact, inference, and speculation.',
+            'Treat simulations as hypothesis generation only.'
+          ]
+        },
+        {
+          id: 'design',
+          name: 'Design',
+          icon: '🎨',
+          accent: '#f472b6',
+          description: 'Motion design, branding, typography, references.',
+          rules: [
+            'Extract visual principles.',
+            'Connect examples to design frameworks.',
+            'Label interpretation clearly.'
+          ]
+        },
+        {
+          id: 'agents',
+          name: 'AI Agents / Coding',
+          icon: '🤖',
+          accent: '#22d3ee',
+          description: 'OpenClaw, Hermes, Claude, mission control.',
+          rules: [
+            'Track tool setup and failure modes.',
+            'Prefer reproducible commands.',
+            'Separate architecture from implementation.'
+          ]
+        },
+        {
+          id: 'fitness',
+          name: 'Fitness / Life',
+          icon: '🏃',
+          accent: '#34d399',
+          description: 'Training logs, HR, recovery, 2.4 km progress.',
+          rules: [
+            'Track logs by date.',
+            'Look for trends, not single data points.',
+            'Keep recommendations sustainable.'
+          ]
+        }
+      ],
+      pages: [
+        {
+          id: 'risk-management',
+          compartmentId: 'trading',
+          title: 'Risk Management',
+          type: 'concept',
+          confidence: 'high',
+          sources: ['src-karpathy-wiki', 'src-trading-note'],
+          links: ['position-sizing', 'parabolic-shorts', 'training-load'],
+          markdown: `# Risk Management
+
+## Summary
+
+Risk management is the shared operating system behind trading, training, freelancing, and AI-token usage. In this vault, it should become a cross-compartment concept rather than only a trading note.
+
+## Key Ideas
+
+- Define maximum loss before entering a trade.
+- Keep daily loss tied to average green day, not emotion.
+- Use review logs to separate process mistakes from setup variance.
+- Cross-link with fitness because heart-rate pacing and trading drawdown control both require restraint.
+
+## Claims
+
+- Trading decisions should separate setup quality from outcome.
+- Simulation and scenario planning should be used for preparation, not certainty.
+
+## Related Pages
+
+- [[Position Sizing]]
+- [[Parabolic Shorts]]
+- [[Training Load]]
+`
+        },
+        {
+          id: 'parabolic-shorts',
+          compartmentId: 'trading',
+          title: 'Parabolic Shorts',
+          type: 'strategy',
+          confidence: 'medium',
+          sources: ['src-trading-note'],
+          links: ['risk-management', 'position-sizing'],
+          markdown: `# Parabolic Shorts
+
+## Summary
+
+A trading setup focused on overheated small-cap moves where price extends rapidly and risk can be defined near the high of day.
+
+## Key Ideas
+
+- Avoid crowded or unclear structures.
+- Look for lower highs after an emotional extension.
+- Size based on stop distance and account risk, not conviction alone.
+- Keep detailed logs of failed thesis conditions.
+
+## Open Questions
+
+- Which filters best separate exhaustion from continuation?
+- How does borrow quality affect expected value?
+`
+        },
+        {
+          id: 'position-sizing',
+          compartmentId: 'trading',
+          title: 'Position Sizing',
+          type: 'concept',
+          confidence: 'high',
+          sources: ['src-trading-note'],
+          links: ['risk-management'],
+          markdown: `# Position Sizing
+
+## Summary
+
+Position sizing converts a thesis into controlled risk. For this vault, sizing should always be attached to account size, stop distance, and max loss guardrails.
+
+## Key Ideas
+
+- Define dollar risk before share size.
+- Use half-Kelly thinking only after the edge is measured.
+- Avoid increasing size to emotionally recover losses.
+`
+        },
+        {
+          id: 'negative-space',
+          compartmentId: 'design',
+          title: 'Negative Space',
+          type: 'design-principle',
+          confidence: 'medium',
+          sources: ['src-design-note'],
+          links: ['logo-wit'],
+          markdown: `# Negative Space
+
+## Summary
+
+Negative space is the deliberate use of empty area to create a second layer of meaning. It supports the kind of clever visual thinking seen in strong logo systems.
+
+## Key Ideas
+
+- The hidden idea should feel discovered, not forced.
+- Simplicity increases memorability.
+- Works best when concept and form collapse into one move.
+`
+        },
+        {
+          id: 'logo-wit',
+          compartmentId: 'design',
+          title: 'Logo Wit',
+          type: 'design-principle',
+          confidence: 'medium',
+          sources: ['src-design-note'],
+          links: ['negative-space'],
+          markdown: `# Logo Wit
+
+## Summary
+
+Logo wit is a compact visual idea that rewards the viewer. It is useful for branding, motion identity, and design critique.
+
+## Related Pages
+
+- [[Negative Space]]
+`
+        },
+        {
+          id: 'llm-wiki',
+          compartmentId: 'agents',
+          title: 'LLM Wiki',
+          type: 'architecture',
+          confidence: 'medium',
+          sources: ['src-karpathy-wiki'],
+          links: ['ai-librarian', 'research-missions'],
+          markdown: `# LLM Wiki
+
+## Summary
+
+An LLM-maintained wiki uses raw sources as truth and keeps generated pages as a living synthesis layer.
+
+## Key Ideas
+
+- Preserve raw sources.
+- Use AI to propose wiki updates.
+- Keep review logs.
+- Maintain links, contradictions, and indexes.
+
+## Implementation Note
+
+In this app, the LLM Wiki pattern becomes the foundation of the Review Queue.
+`
+        },
+        {
+          id: 'ai-librarian',
+          compartmentId: 'agents',
+          title: 'AI Librarian',
+          type: 'agent-role',
+          confidence: 'medium',
+          sources: ['src-karpathy-wiki'],
+          links: ['llm-wiki', 'review-queue'],
+          markdown: `# AI Librarian
+
+## Summary
+
+The AI Librarian reads sources, extracts structure, proposes links, and waits for user approval before modifying the vault.
+
+## Responsibilities
+
+- Summarize sources.
+- Suggest pages.
+- Suggest backlinks.
+- Flag contradictions.
+- Respect compartment-specific rules.
+`
+        },
+        {
+          id: 'training-load',
+          compartmentId: 'fitness',
+          title: 'Training Load',
+          type: 'fitness-concept',
+          confidence: 'medium',
+          sources: ['src-fitness-note'],
+          links: ['risk-management'],
+          markdown: `# Training Load
+
+## Summary
+
+Training load should be increased gradually. Single-session spikes should not dominate the plan; trends matter more than one day.
+
+## Key Ideas
+
+- Recovery is part of adaptation.
+- Low-intensity base work can reduce heart-rate spikes.
+- Race-specific work should be added only after the base is stable.
+`
+        }
+      ],
+      sources: [
+        {
+          id: 'src-karpathy-wiki',
+          compartmentId: 'agents',
+          type: 'URL',
+          title: 'Karpathy-style LLM Wiki Notes',
+          url: 'https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f',
+          status: 'processed',
+          summary: 'Raw-source-first AI-maintained wiki pattern.'
+        },
+        {
+          id: 'src-trading-note',
+          compartmentId: 'trading',
+          type: 'Manual Note',
+          title: 'Small Cap Shorting Framework',
+          url: '',
+          status: 'processed',
+          summary: 'Notes on parabolic shorts, risk, and sizing.'
+        },
+        {
+          id: 'src-design-note',
+          compartmentId: 'design',
+          type: 'Manual Note',
+          title: 'Design Principles Collection',
+          url: '',
+          status: 'processed',
+          summary: 'Negative space, wit, brand systems, and critique references.'
+        },
+        {
+          id: 'src-fitness-note',
+          compartmentId: 'fitness',
+          type: 'Training Log',
+          title: 'Heart Rate Base Training Notes',
+          url: '',
+          status: 'processed',
+          summary: 'Low-intensity training and gradual race-specific work.'
+        }
+      ],
+      proposals: [
+        {
+          id: 'prop-1',
+          compartmentId: 'trading',
+          sourceId: 'src-karpathy-wiki',
+          type: 'cross_link',
+          title: 'Create shared concept: Risk Management',
+          targetPageId: 'risk-management',
+          confidence: 'high',
+          status: 'pending',
+          reasoning: 'Risk management appears across trading, fitness, and AI token budgeting. A shared concept can connect these domains without merging all pages.',
+          suggestedContent: 'Add cross-compartment links from Risk Management to Training Load and AI Token Budget.'
+        },
+        {
+          id: 'prop-2',
+          compartmentId: 'agents',
+          sourceId: 'src-karpathy-wiki',
+          type: 'update_page',
+          title: 'Update LLM Wiki with review queue rule',
+          targetPageId: 'llm-wiki',
+          confidence: 'high',
+          status: 'pending',
+          reasoning: 'The app should prevent direct AI writes and route all changes through proposals.',
+          suggestedContent: 'Add section: “AI-generated wiki updates must enter the Review Queue before becoming canonical.”'
+        },
+        {
+          id: 'prop-3',
+          compartmentId: 'design',
+          sourceId: 'src-design-note',
+          type: 'add_backlink',
+          title: 'Link Negative Space to Logo Wit',
+          targetPageId: 'negative-space',
+          confidence: 'medium',
+          status: 'pending',
+          reasoning: 'Both pages describe compact visual meaning and viewer discovery.',
+          suggestedContent: 'Add backlink: [[Logo Wit]]'
+        }
+      ],
+      missions: [
+        {
+          id: 'mission-1',
+          title: 'Research AI + Obsidian workflows',
+          compartmentId: 'agents',
+          status: 'draft',
+          steps: ['Collect sources', 'Ingest transcripts/articles', 'Generate synthesis', 'Propose wiki updates']
+        },
+        {
+          id: 'mission-2',
+          title: 'Build small-cap shorting evidence map',
+          compartmentId: 'trading',
+          status: 'draft',
+          steps: ['Collect filings/news', 'Extract catalysts', 'Map claims', 'Create risk checklist']
+        }
+      ]
+    };
+
+    const STORAGE_KEY = 'ai-wiki-vault-state-v1';
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Could not load saved state', e);
+      }
+      return structuredClone(initialState);
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function currentCompartment() {
+      return state.compartments.find(c => c.id === state.activeCompartment);
+    }
+
+    function currentPages() {
+      return state.pages.filter(p => p.compartmentId === state.activeCompartment);
+    }
+
+    function currentSources() {
+      return state.sources.filter(s => s.compartmentId === state.activeCompartment);
+    }
+
+    function currentProposals() {
+      return state.proposals.filter(p => p.compartmentId === state.activeCompartment && p.status === 'pending');
+    }
+
+    function selectedPage() {
+      return state.pages.find(p => p.id === state.selectedPageId) || currentPages()[0] || state.pages[0];
+    }
+
+    function htmlEscape(str = '') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function renderMarkdown(md = '') {
+      const escaped = htmlEscape(md);
+      return escaped
+        .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+        .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+        .replace(/\[\[(.*?)\]\]/g, '<a href="#" data-wikilink="$1">[[$1]]</a>')
+        .replace(/^- (.*)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+        .replace(/\n\n/g, '<br/>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>');
+    }
+
+    function setTitle(title, crumbText) {
+      document.getElementById('mainTitle').textContent = title;
+      document.getElementById('crumb').textContent = crumbText || `${currentCompartment().name} · ${capitalize(state.activeTab)}`;
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function render() {
+      renderCompartments();
+      renderTabs();
+      renderPageList();
+
+      if (state.activeTab === 'inbox') renderInbox();
+      if (state.activeTab === 'wiki') renderWiki();
+      if (state.activeTab === 'graph') renderGraph();
+      if (state.activeTab === 'research') renderResearch();
+      if (state.activeTab === 'review') renderReviewQueue();
+
+      saveState();
+    }
+
+    function renderCompartments() {
+      const wrap = document.getElementById('compartmentList');
+      wrap.innerHTML = state.compartments.map(c => {
+        const active = c.id === state.activeCompartment;
+        return `
+          <button data-compartment="${c.id}" class="compartment-btn w-full text-left p-3 rounded-2xl soft-border transition ${active ? 'bg-violet-400/15 border-violet-300/30' : 'bg-white/[0.03] hover:bg-white/[0.06]'}">
+            <div class="flex items-center gap-3">
+              <span class="text-lg">${c.icon}</span>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold truncate">${c.name}</div>
+                <div class="text-[11px] text-slate-400 truncate">${c.description}</div>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.compartment-btn').forEach(btn => {
+        btn.onclick = () => {
+          state.activeCompartment = btn.dataset.compartment;
+          const firstPage = currentPages()[0];
+          if (firstPage) state.selectedPageId = firstPage.id;
+          render();
+        };
+      });
+    }
+
+    function renderTabs() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('tab-active', btn.dataset.tab === state.activeTab);
+        btn.onclick = () => {
+          state.activeTab = btn.dataset.tab;
+          render();
+        };
+      });
+    }
+
+    function renderPageList() {
+      const wrap = document.getElementById('pageList');
+      const pages = currentPages();
+      wrap.innerHTML = pages.map(p => `
+        <button data-page="${p.id}" class="page-btn w-full text-left px-3 py-2 rounded-xl text-sm ${p.id === state.selectedPageId ? 'bg-white/10 text-violet-100' : 'text-slate-300 hover:bg-white/5'}">
+          <div class="truncate">${p.title}</div>
+          <div class="text-[10px] text-slate-500 truncate">${p.type} · ${p.confidence}</div>
+        </button>
+      `).join('') || `<p class="text-sm text-slate-500">No pages yet.</p>`;
+
+      document.querySelectorAll('.page-btn').forEach(btn => {
+        btn.onclick = () => {
+          state.selectedPageId = btn.dataset.page;
+          state.activeTab = 'wiki';
+          render();
+        };
+      });
+
+      document.getElementById('newPageBtn').onclick = () => {
+        const title = prompt('New page title');
+        if (!title) return;
+        const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4);
+        state.pages.push({
+          id,
+          compartmentId: state.activeCompartment,
+          title,
+          type: 'note',
+          confidence: 'draft',
+          sources: [],
+          links: [],
+          markdown: `# ${title}\n\n## Summary\n\nStart writing here.\n\n## Related Pages\n\n`
+        });
+        state.selectedPageId = id;
+        state.activeTab = 'wiki';
+        render();
+      };
+    }
+
+    function renderInbox() {
+      setTitle('Source Inbox', `${currentCompartment().name} · Inbox`);
+      document.getElementById('viewActions').innerHTML = `
+        <button id="mockVideoBtn" class="text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 soft-border">Add video note</button>
+      `;
+
+      document.getElementById('mainContent').innerHTML = `
+        <div class="grid xl:grid-cols-2 gap-4">
+          <section class="glass rounded-3xl p-4 md:p-5">
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 class="font-bold text-lg">Add a source</h3>
+                <p class="text-sm text-slate-400 mt-1">Paste a URL, transcript, article, or rough note. AI creates proposals, not direct edits.</p>
+              </div>
+              <span class="text-xs text-violet-300 bg-violet-400/10 px-2 py-1 rounded-full soft-border">Phase 1</span>
+            </div>
+
+            <form id="sourceForm" class="space-y-3">
+              <input id="sourceTitle" class="w-full bg-white/5 soft-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-violet-400/60" placeholder="Source title" required>
+              <input id="sourceUrl" class="w-full bg-white/5 soft-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-violet-400/60" placeholder="URL, YouTube link, or leave blank">
+              <select id="sourceType" class="w-full bg-white/5 soft-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-violet-400/60">
+                <option>URL</option>
+                <option>YouTube / Video Transcript</option>
+                <option>PDF</option>
+                <option>Manual Note</option>
+                <option>Trading Report</option>
+                <option>Design Reference</option>
+              </select>
+              <textarea id="sourceText" rows="7" class="w-full bg-white/5 soft-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-violet-400/60" placeholder="Paste article, transcript, rough notes, or summary here..."></textarea>
+              <div class="flex gap-2">
+                <button class="flex-1 rounded-2xl bg-violet-500 hover:bg-violet-400 px-4 py-3 text-sm font-semibold shadow-purple">Ingest as proposals</button>
+                <button id="saveRawBtn" type="button" class="rounded-2xl bg-white/5 hover:bg-white/10 px-4 py-3 text-sm soft-border">Save raw only</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="space-y-3">
+            <div class="glass rounded-3xl p-4">
+              <h3 class="font-bold">Compartment AI Rules</h3>
+              <p class="text-sm text-slate-400 mt-1">${currentCompartment().description}</p>
+              <div class="mt-3 space-y-2">
+                ${currentCompartment().rules.map(r => `<div class="text-sm bg-white/5 soft-border rounded-2xl p-3">• ${r}</div>`).join('')}
+              </div>
+            </div>
+
+            <div class="glass rounded-3xl p-4">
+              <h3 class="font-bold">Recent Sources</h3>
+              <div class="mt-3 space-y-2">
+                ${currentSources().map(sourceCard).join('') || '<p class="text-sm text-slate-500">No sources in this compartment yet.</p>'}
+              </div>
+            </div>
+          </section>
+        </div>
+      `;
+
+      document.getElementById('sourceForm').onsubmit = (e) => {
+        e.preventDefault();
+        addSource(true);
+      };
+      document.getElementById('saveRawBtn').onclick = () => addSource(false);
+      document.getElementById('mockVideoBtn').onclick = () => {
+        document.getElementById('sourceTitle').value = 'Video: AI Obsidian Workflow Breakdown';
+        document.getElementById('sourceUrl').value = 'https://youtube.com/watch?v=example';
+        document.getElementById('sourceType').value = 'YouTube / Video Transcript';
+        document.getElementById('sourceText').value = 'Transcript notes: The workflow uses AI to ingest sources, create linked notes, and maintain a second brain. The speaker warns that graph views become messy without filtering.';
+      };
+
+      renderContextForInbox();
+    }
+
+    function sourceCard(s) {
+      return `
+        <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="font-medium text-sm">${htmlEscape(s.title)}</p>
+              <p class="text-[11px] text-slate-500 mt-1">${htmlEscape(s.type)} · ${htmlEscape(s.status)}</p>
+            </div>
+            <span class="text-[10px] px-2 py-1 rounded-full ${s.status === 'processed' ? 'bg-emerald-400/10 text-emerald-300' : 'bg-amber-400/10 text-amber-300'}">${s.status}</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">${htmlEscape(s.summary || 'Raw source saved.')}</p>
+        </div>
+      `;
+    }
+
+    function addSource(withProposals) {
+      const title = document.getElementById('sourceTitle').value.trim();
+      const url = document.getElementById('sourceUrl').value.trim();
+      const type = document.getElementById('sourceType').value;
+      const text = document.getElementById('sourceText').value.trim();
+      if (!title) return;
+
+      const id = 'src-' + Date.now();
+      state.sources.unshift({
+        id,
+        compartmentId: state.activeCompartment,
+        type,
+        title,
+        url,
+        status: withProposals ? 'processed' : 'raw',
+        summary: text ? text.slice(0, 150) + (text.length > 150 ? '...' : '') : 'No body text provided yet.'
+      });
+
+      if (withProposals) {
+        const pageTitle = inferPageTitle(title);
+        state.proposals.unshift({
+          id: 'prop-' + Date.now(),
+          compartmentId: state.activeCompartment,
+          sourceId: id,
+          type: 'create_page',
+          title: `Create page: ${pageTitle}`,
+          targetPageId: '',
+          confidence: 'medium',
+          status: 'pending',
+          reasoning: `This source appears relevant to ${currentCompartment().name}. The AI librarian suggests making it a structured wiki page first, then linking it after review.`,
+          suggestedContent: `# ${pageTitle}\n\n## Summary\n\n${text ? text.slice(0, 280) : 'Summarize this source after full extraction.'}\n\n## Key Ideas\n\n- Extract main idea\n- Add source-backed claims\n- Suggest related pages\n\n## Related Pages\n\n`
+        });
+
+        state.proposals.unshift({
+          id: 'prop-' + (Date.now() + 1),
+          compartmentId: state.activeCompartment,
+          sourceId: id,
+          type: 'add_backlink',
+          title: `Suggest backlinks from ${pageTitle}`,
+          targetPageId: state.selectedPageId,
+          confidence: 'low',
+          status: 'pending',
+          reasoning: 'Possible relation detected, but user should verify before linking.',
+          suggestedContent: `Review whether this source should link to [[${selectedPage().title}]].`
+        });
+      }
+
+      state.activeTab = withProposals ? 'review' : 'inbox';
+      render();
+    }
+
+    function inferPageTitle(title) {
+      return title.replace(/^Video:\s*/i, '').replace(/^Article:\s*/i, '').trim() || 'Untitled Source';
+    }
+
+    function renderWiki() {
+      const page = selectedPage();
+      if (!page || page.compartmentId !== state.activeCompartment) {
+        const first = currentPages()[0];
+        if (first) state.selectedPageId = first.id;
+      }
+      const p = selectedPage();
+      setTitle(p.title, `${currentCompartment().name} · Wiki · ${p.type}`);
+      document.getElementById('viewActions').innerHTML = `
+        <button id="editPageBtn" class="text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 soft-border">Edit Markdown</button>
+        <button id="makeProposalBtn" class="text-xs px-3 py-2 rounded-xl bg-violet-500 hover:bg-violet-400 text-white">AI Suggest</button>
+      `;
+
+      const related = (p.links || []).map(id => state.pages.find(pg => pg.id === id)).filter(Boolean);
+      const sources = (p.sources || []).map(id => state.sources.find(s => s.id === id)).filter(Boolean);
+
+      document.getElementById('mainContent').innerHTML = `
+        <article class="glass rounded-3xl p-5 md:p-7">
+          <div class="flex flex-wrap gap-2 mb-5">
+            <span class="text-xs bg-violet-400/10 text-violet-300 soft-border px-2.5 py-1 rounded-full">${p.type}</span>
+            <span class="text-xs bg-white/5 text-slate-300 soft-border px-2.5 py-1 rounded-full">confidence: ${p.confidence}</span>
+            <span class="text-xs bg-white/5 text-slate-300 soft-border px-2.5 py-1 rounded-full">${sources.length} sources</span>
+            <span class="text-xs bg-white/5 text-slate-300 soft-border px-2.5 py-1 rounded-full">${related.length} links</span>
+          </div>
+          <div class="markdown max-w-3xl">${renderMarkdown(p.markdown)}</div>
+        </article>
+      `;
+
+      document.getElementById('editPageBtn').onclick = () => {
+        const updated = prompt('Edit markdown', p.markdown);
+        if (updated !== null) {
+          p.markdown = updated;
+          render();
+        }
+      };
+
+      document.getElementById('makeProposalBtn').onclick = () => {
+        state.proposals.unshift({
+          id: 'prop-' + Date.now(),
+          compartmentId: state.activeCompartment,
+          sourceId: p.sources[0] || '',
+          type: 'update_page',
+          title: `Strengthen page: ${p.title}`,
+          targetPageId: p.id,
+          confidence: 'medium',
+          status: 'pending',
+          reasoning: 'The AI librarian suggests adding clearer claims, related pages, and open questions.',
+          suggestedContent: `Add sections to [[${p.title}]]: Claims, Open Questions, and Source Notes.`
+        });
+        state.activeTab = 'review';
+        render();
+      };
+
+      renderContextForPage(p, related, sources);
+    }
+
+    function renderGraph() {
+      setTitle('Knowledge Graph', `${currentCompartment().name} · Graph`);
+      document.getElementById('viewActions').innerHTML = `
+        <select id="graphMode" class="text-xs px-3 py-2 rounded-xl bg-white/5 soft-border outline-none">
+          <option>Compartment graph</option>
+          <option>Global graph</option>
+          <option>Source graph</option>
+          <option>Cross-compartment graph</option>
+        </select>
+      `;
+
+      const nodes = buildGraphNodes();
+      const edges = buildGraphEdges(nodes);
+      document.getElementById('mainContent').innerHTML = `
+        <div class="grid xl:grid-cols-5 gap-4 h-full min-h-[560px]">
+          <div class="xl:col-span-4 glass rounded-3xl overflow-hidden relative">
+            <div class="absolute left-4 top-4 z-10">
+              <p class="text-xs uppercase tracking-[.18em] text-slate-500">Node workflow</p>
+              <p class="text-sm text-slate-300">Click a node to inspect. This is a cleaner graph than Obsidian’s default hairball.</p>
+            </div>
+            <svg id="graphSvg" class="w-full h-full min-h-[560px]" viewBox="0 0 900 620">
+              <defs>
+                <filter id="softGlow">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              ${edges.map(e => `
+                <line x1="${e.from.x}" y1="${e.from.y}" x2="${e.to.x}" y2="${e.to.y}" stroke="rgba(167,139,250,.28)" stroke-width="${e.type === 'cross' ? 2.5 : 1.2}" stroke-dasharray="${e.type === 'cross' ? '6 6' : '0'}"/>
+              `).join('')}
+              ${nodes.map(n => `
+                <g class="node" data-node="${n.id}" transform="translate(${n.x}, ${n.y})">
+                  <circle r="${n.r}" fill="${n.color}" opacity=".9" filter="url(#softGlow)"></circle>
+                  <circle r="${n.r + 7}" fill="transparent" stroke="${n.color}" opacity=".16"></circle>
+                  <text text-anchor="middle" y="${n.r + 22}" fill="#cbd5e1" font-size="13" font-weight="600">${htmlEscape(n.label).slice(0, 18)}</text>
+                  <text text-anchor="middle" y="${n.r + 38}" fill="#64748b" font-size="10">${htmlEscape(n.type)}</text>
+                </g>
+              `).join('')}
+            </svg>
+          </div>
+
+          <div class="xl:col-span-1 space-y-3">
+            <div class="glass rounded-3xl p-4">
+              <h3 class="font-bold">Graph Filters</h3>
+              <div class="mt-3 space-y-2 text-sm">
+                <label class="flex items-center gap-2"><input type="checkbox" checked> Concepts</label>
+                <label class="flex items-center gap-2"><input type="checkbox" checked> Sources</label>
+                <label class="flex items-center gap-2"><input type="checkbox" checked> Cross-links</label>
+                <label class="flex items-center gap-2"><input type="checkbox"> Low confidence edges</label>
+              </div>
+            </div>
+            <div class="glass rounded-3xl p-4">
+              <h3 class="font-bold">Why this improves Obsidian</h3>
+              <p class="text-sm text-slate-400 mt-2">Instead of one giant graph, this supports global, compartment, source, and claim-level modes.</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.querySelectorAll('.node').forEach(node => {
+        node.onclick = () => {
+          state.selectedNodeId = node.dataset.node;
+          const page = state.pages.find(p => p.id === state.selectedNodeId);
+          if (page) {
+            state.selectedPageId = page.id;
+            renderContextForNode(page);
+          }
+        };
+      });
+
+      const firstPage = selectedPage();
+      renderContextForNode(state.pages.find(p => p.id === state.selectedNodeId) || firstPage);
+    }
+
+    function buildGraphNodes() {
+      const pages = state.pages.filter(p => p.compartmentId === state.activeCompartment);
+      const comp = currentCompartment();
+      const center = { id: comp.id, label: comp.name, type: 'compartment', x: 450, y: 300, r: 52, color: comp.accent };
+      const radius = 210;
+      const pageNodes = pages.map((p, i) => {
+        const angle = (Math.PI * 2 * i) / Math.max(pages.length, 1) - Math.PI / 2;
+        return {
+          id: p.id,
+          label: p.title,
+          type: p.type,
+          x: 450 + Math.cos(angle) * radius,
+          y: 300 + Math.sin(angle) * radius,
+          r: p.confidence === 'high' ? 34 : 29,
+          color: p.compartmentId === 'trading' ? '#a78bfa' : p.compartmentId === 'design' ? '#f472b6' : p.compartmentId === 'agents' ? '#22d3ee' : '#34d399'
+        };
+      });
+      return [center, ...pageNodes];
+    }
+
+    function buildGraphEdges(nodes) {
+      const edges = [];
+      const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+      nodes.slice(1).forEach(n => edges.push({ from: nodeMap[state.activeCompartment], to: n, type: 'belongs_to' }));
+      state.pages.filter(p => p.compartmentId === state.activeCompartment).forEach(p => {
+        (p.links || []).forEach(linkId => {
+          if (nodeMap[p.id] && nodeMap[linkId]) edges.push({ from: nodeMap[p.id], to: nodeMap[linkId], type: 'related_to' });
+        });
+      });
+      return edges;
+    }
+
+    function renderResearch() {
+      setTitle('Research Missions', `${currentCompartment().name} · Research`);
+      document.getElementById('viewActions').innerHTML = `
+        <button id="newMissionBtn" class="text-xs px-3 py-2 rounded-xl bg-violet-500 hover:bg-violet-400 text-white">New Mission</button>
+      `;
+
+      const missions = state.missions.filter(m => m.compartmentId === state.activeCompartment);
+      document.getElementById('mainContent').innerHTML = `
+        <div class="grid xl:grid-cols-2 gap-4">
+          <section class="glass rounded-3xl p-5">
+            <h3 class="font-bold text-lg">Autoresearch-inspired mission loop</h3>
+            <p class="text-sm text-slate-400 mt-2">This is where your app later searches, collects sources, ingests them, generates synthesis, and proposes wiki updates.</p>
+            <div class="mt-5 space-y-3">
+              ${missions.map(m => `
+                <div class="bg-white/[0.04] soft-border rounded-3xl p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 class="font-semibold">${htmlEscape(m.title)}</h4>
+                      <p class="text-xs text-slate-500 mt-1">${m.status}</p>
+                    </div>
+                    <button data-mission="${m.id}" class="run-mission text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 soft-border">Mock run</button>
+                  </div>
+                  <ol class="mt-3 space-y-2">
+                    ${m.steps.map((s, i) => `<li class="text-sm text-slate-300"><span class="text-violet-300">${i+1}.</span> ${htmlEscape(s)}</li>`).join('')}
+                  </ol>
+                </div>
+              `).join('') || '<p class="text-sm text-slate-500">No missions yet.</p>'}
+            </div>
+          </section>
+
+          <section class="glass rounded-3xl p-5">
+            <h3 class="font-bold text-lg">Scenario Simulator later</h3>
+            <p class="text-sm text-slate-400 mt-2">A MiroFish-style module should come later as a speculative “what could happen?” simulator, not as a prediction engine.</p>
+            <div class="mt-4 bg-amber-400/10 text-amber-100 soft-border rounded-3xl p-4 text-sm">
+              <strong>Important:</strong> For trading, simulations should generate hypotheses and failure modes. They should not become automated buy/sell signals.
+            </div>
+            <div class="mt-4 space-y-2">
+              <div class="bg-white/[0.04] soft-border rounded-2xl p-3 text-sm">Example: “How could this small-cap short thesis fail?”</div>
+              <div class="bg-white/[0.04] soft-border rounded-2xl p-3 text-sm">Example: “What second-order design trends follow this AI tool?”</div>
+              <div class="bg-white/[0.04] soft-border rounded-2xl p-3 text-sm">Example: “What happens if AI agent token cost triples?”</div>
+            </div>
+          </section>
+        </div>
+      `;
+
+      document.querySelectorAll('.run-mission').forEach(btn => {
+        btn.onclick = () => {
+          const mission = state.missions.find(m => m.id === btn.dataset.mission);
+          if (!mission) return;
+          state.proposals.unshift({
+            id: 'prop-' + Date.now(),
+            compartmentId: state.activeCompartment,
+            sourceId: '',
+            type: 'research_synthesis',
+            title: `Create synthesis from mission: ${mission.title}`,
+            targetPageId: '',
+            confidence: 'medium',
+            status: 'pending',
+            reasoning: 'Mock mission produced a synthesis proposal. In production, this would be based on collected sources.',
+            suggestedContent: `# ${mission.title}\n\n## Synthesis\n\nThis page would summarize collected sources and propose follow-up questions.\n\n## Next Questions\n\n- What source is missing?\n- Which claim needs stronger evidence?\n- Should this link across compartments?`
+          });
+          state.activeTab = 'review';
+          render();
+        };
+      });
+
+      document.getElementById('newMissionBtn').onclick = () => {
+        const title = prompt('Research mission title');
+        if (!title) return;
+        state.missions.unshift({
+          id: 'mission-' + Date.now(),
+          title,
+          compartmentId: state.activeCompartment,
+          status: 'draft',
+          steps: ['Collect sources', 'Ingest sources', 'Generate synthesis', 'Create review proposals']
+        });
+        render();
+      };
+
+      renderContextForResearch();
+    }
+
+    function renderReviewQueue() {
+      setTitle('Review Queue', `${currentCompartment().name} · Review Queue`);
+      const pending = currentProposals();
+      document.getElementById('viewActions').innerHTML = `
+        <button id="approveSafeBtn" class="text-xs px-3 py-2 rounded-xl bg-emerald-500/90 hover:bg-emerald-400 text-white">Approve high-confidence</button>
+      `;
+
+      document.getElementById('mainContent').innerHTML = `
+        <div class="space-y-3">
+          ${pending.length ? pending.map(proposalCard).join('') : `
+            <div class="glass rounded-3xl p-8 text-center">
+              <div class="text-4xl mb-3">✅</div>
+              <h3 class="font-bold text-lg">Review queue is clean</h3>
+              <p class="text-sm text-slate-400 mt-2">New AI-generated wiki changes will appear here before entering the vault.</p>
+            </div>
+          `}
+        </div>
+      `;
+
+      document.querySelectorAll('[data-approve]').forEach(btn => btn.onclick = () => approveProposal(btn.dataset.approve));
+      document.querySelectorAll('[data-reject]').forEach(btn => btn.onclick = () => rejectProposal(btn.dataset.reject));
+      document.querySelectorAll('[data-edit]').forEach(btn => btn.onclick = () => editProposal(btn.dataset.edit));
+
+      document.getElementById('approveSafeBtn').onclick = () => {
+        currentProposals().filter(p => p.confidence === 'high').forEach(p => approveProposal(p.id, false));
+        render();
+      };
+
+      renderContextForReview(pending);
+    }
+
+    function proposalCard(p) {
+      const source = state.sources.find(s => s.id === p.sourceId);
+      return `
+        <div class="glass rounded-3xl p-5">
+          <div class="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="flex flex-wrap gap-2 mb-2">
+                <span class="text-xs bg-violet-400/10 text-violet-300 soft-border px-2 py-1 rounded-full">${htmlEscape(p.type)}</span>
+                <span class="text-xs ${p.confidence === 'high' ? 'bg-emerald-400/10 text-emerald-300' : p.confidence === 'medium' ? 'bg-amber-400/10 text-amber-300' : 'bg-slate-400/10 text-slate-300'} soft-border px-2 py-1 rounded-full">${htmlEscape(p.confidence)} confidence</span>
+              </div>
+              <h3 class="font-bold text-lg">${htmlEscape(p.title)}</h3>
+              <p class="text-sm text-slate-400 mt-2">${htmlEscape(p.reasoning)}</p>
+              ${source ? `<p class="text-xs text-slate-500 mt-2">Source: ${htmlEscape(source.title)}</p>` : ''}
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button data-edit="${p.id}" class="text-xs px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 soft-border">Edit</button>
+              <button data-reject="${p.id}" class="text-xs px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 soft-border">Reject</button>
+              <button data-approve="${p.id}" class="text-xs px-3 py-2 rounded-xl bg-emerald-500/90 hover:bg-emerald-400 text-white">Approve</button>
+            </div>
+          </div>
+          <pre class="mt-4 whitespace-pre-wrap text-xs md:text-sm bg-black/25 soft-border rounded-2xl p-4 text-slate-300 overflow-auto">${htmlEscape(p.suggestedContent)}</pre>
+        </div>
+      `;
+    }
+
+    function approveProposal(id, shouldRender = true) {
+      const p = state.proposals.find(x => x.id === id);
+      if (!p) return;
+      p.status = 'approved';
+
+      if (p.type === 'create_page' || p.type === 'research_synthesis') {
+        const title = p.title.replace(/^Create page:\s*/i, '').replace(/^Create synthesis from mission:\s*/i, '');
+        const newId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4);
+        state.pages.push({
+          id: newId,
+          compartmentId: p.compartmentId,
+          title,
+          type: p.type === 'research_synthesis' ? 'synthesis' : 'source-note',
+          confidence: p.confidence,
+          sources: p.sourceId ? [p.sourceId] : [],
+          links: [],
+          markdown: p.suggestedContent
+        });
+        state.selectedPageId = newId;
+      } else if (p.targetPageId) {
+        const page = state.pages.find(pg => pg.id === p.targetPageId);
+        if (page) {
+          page.markdown += `\n\n## AI Approved Update\n\n${p.suggestedContent}\n`;
+        }
+      }
+
+      if (shouldRender) render();
+    }
+
+    function rejectProposal(id) {
+      const p = state.proposals.find(x => x.id === id);
+      if (!p) return;
+      p.status = 'rejected';
+      render();
+    }
+
+    function editProposal(id) {
+      const p = state.proposals.find(x => x.id === id);
+      if (!p) return;
+      const updated = prompt('Edit proposal content before approval', p.suggestedContent);
+      if (updated !== null) {
+        p.suggestedContent = updated;
+        render();
+      }
+    }
+
+    function renderContextForInbox() {
+      document.getElementById('contextTitle').textContent = 'Inbox Strategy';
+      document.getElementById('contextSubtitle').textContent = 'Sources enter here. Canonical knowledge enters only after review.';
+      document.getElementById('contextContent').innerHTML = `
+        <div class="space-y-3">
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Best workflow</h4>
+            <p class="text-sm text-slate-400 mt-1">Paste source → generate proposals → approve only useful changes.</p>
+          </div>
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Video support</h4>
+            <p class="text-sm text-slate-400 mt-1">Phase 1 treats video as transcript. Full visual understanding should come later.</p>
+          </div>
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Obsidian improvement</h4>
+            <p class="text-sm text-slate-400 mt-1">Instead of manually linking everything, the AI proposes links while you stay in control.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderContextForPage(p, related, sources) {
+      document.getElementById('contextTitle').textContent = p.title;
+      document.getElementById('contextSubtitle').textContent = `${p.type} · ${p.confidence} confidence`;
+      document.getElementById('contextContent').innerHTML = `
+        <div class="space-y-4">
+          <section>
+            <h4 class="text-xs uppercase tracking-[.18em] text-slate-500 mb-2">Sources</h4>
+            <div class="space-y-2">
+              ${sources.map(s => `<div class="bg-white/[0.04] soft-border rounded-2xl p-3 text-sm">${htmlEscape(s.title)}<div class="text-xs text-slate-500 mt-1">${htmlEscape(s.type)}</div></div>`).join('') || '<p class="text-sm text-slate-500">No source linked.</p>'}
+            </div>
+          </section>
+          <section>
+            <h4 class="text-xs uppercase tracking-[.18em] text-slate-500 mb-2">Related Pages</h4>
+            <div class="space-y-2">
+              ${related.map(r => `<button data-related="${r.id}" class="related-page w-full text-left bg-white/[0.04] hover:bg-white/[0.08] soft-border rounded-2xl p-3 text-sm">${htmlEscape(r.title)}<div class="text-xs text-slate-500 mt-1">${htmlEscape(r.type)}</div></button>`).join('') || '<p class="text-sm text-slate-500">No related pages.</p>'}
+            </div>
+          </section>
+          <section>
+            <h4 class="text-xs uppercase tracking-[.18em] text-slate-500 mb-2">AI Suggestions</h4>
+            <div class="bg-violet-400/10 soft-border rounded-2xl p-3 text-sm text-violet-100">Add claims and source notes to make this page more auditable.</div>
+          </section>
+        </div>
+      `;
+      document.querySelectorAll('.related-page').forEach(btn => {
+        btn.onclick = () => {
+          state.selectedPageId = btn.dataset.related;
+          render();
+        };
+      });
+    }
+
+    function renderContextForNode(page) {
+      document.getElementById('contextTitle').textContent = page ? page.title : 'Graph Node';
+      document.getElementById('contextSubtitle').textContent = page ? `${page.type} · ${page.confidence}` : 'Select a node';
+      document.getElementById('contextContent').innerHTML = page ? `
+        <div class="space-y-3">
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Node Summary</h4>
+            <p class="text-sm text-slate-400 mt-1">${htmlEscape(page.markdown.replace(/[#\-\[\]]/g, '').slice(0, 220))}...</p>
+          </div>
+          <button id="openNodePage" class="w-full rounded-2xl bg-violet-500 hover:bg-violet-400 px-4 py-3 text-sm font-semibold">Open page</button>
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Links</h4>
+            <p class="text-sm text-slate-400 mt-1">${(page.links || []).length} outgoing links</p>
+          </div>
+        </div>
+      ` : `<p class="text-sm text-slate-500">Click a node to inspect it.</p>`;
+
+      const btn = document.getElementById('openNodePage');
+      if (btn && page) {
+        btn.onclick = () => {
+          state.selectedPageId = page.id;
+          state.activeTab = 'wiki';
+          render();
+        };
+      }
+    }
+
+    function renderContextForResearch() {
+      document.getElementById('contextTitle').textContent = 'Research Agent';
+      document.getElementById('contextSubtitle').textContent = 'Autoresearch-inspired, but review-gated.';
+      document.getElementById('contextContent').innerHTML = `
+        <div class="space-y-3">
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Safe default</h4>
+            <p class="text-sm text-slate-400 mt-1">Missions should create proposals, not overwrite pages.</p>
+          </div>
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Later upgrade</h4>
+            <p class="text-sm text-slate-400 mt-1">Add source search, citation extraction, and synthesis reports.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderContextForReview(pending) {
+      document.getElementById('contextTitle').textContent = 'AI Review Control';
+      document.getElementById('contextSubtitle').textContent = `${pending.length} pending proposal${pending.length === 1 ? '' : 's'}`;
+      document.getElementById('contextContent').innerHTML = `
+        <div class="space-y-3">
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Why this matters</h4>
+            <p class="text-sm text-slate-400 mt-1">The review queue is the anti-slop layer. It keeps the wiki useful and auditable.</p>
+          </div>
+          <div class="bg-white/[0.04] soft-border rounded-2xl p-3">
+            <h4 class="font-semibold text-sm">Approval rule</h4>
+            <p class="text-sm text-slate-400 mt-1">Approve high-confidence factual updates. Manually inspect interpretation, cross-links, and trading-related claims.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('exportBtn').onclick = () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ai-wiki-vault-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    document.getElementById('globalSearch').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) return renderPageList();
+      const wrap = document.getElementById('pageList');
+      const results = state.pages.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.markdown.toLowerCase().includes(q)
+      );
+      wrap.innerHTML = results.map(p => `
+        <button data-page="${p.id}" class="page-btn w-full text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-white/5">
+          <div class="truncate">${p.title}</div>
+          <div class="text-[10px] text-slate-500 truncate">${state.compartments.find(c => c.id === p.compartmentId)?.name || ''}</div>
+        </button>
+      `).join('') || '<p class="text-sm text-slate-500">No results.</p>';
+      document.querySelectorAll('.page-btn').forEach(btn => {
+        btn.onclick = () => {
+          const page = state.pages.find(p => p.id === btn.dataset.page);
+          if (page) {
+            state.activeCompartment = page.compartmentId;
+            state.selectedPageId = page.id;
+            state.activeTab = 'wiki';
+            e.target.value = '';
+            render();
+          }
+        };
+      });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        document.getElementById('globalSearch').focus();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

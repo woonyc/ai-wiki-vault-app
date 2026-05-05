@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Wiki Vault — Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a0a;
+    --bg-1:#0e0e0e;
+    --bg-2:#131313;
+    --bg-3:#181818;
+    --line:rgba(255,255,255,.06);
+    --line-2:rgba(255,255,255,.10);
+    --line-3:rgba(255,255,255,.16);
+    --ink:#ece9e2;
+    --ink-2:#a8a59c;
+    --ink-3:#67645c;
+    --ink-4:#3e3c37;
+    --rust:#d97757;
+    --rust-soft:rgba(217,119,87,.14);
+    --lime:#CCFF00;
+    --lime-soft:rgba(204,255,0,.10);
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans);
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.5;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(217,119,87,.04), transparent 40%),
+      radial-gradient(circle at 90% 100%, rgba(204,255,0,.02), transparent 40%);
+  }
+  body::before{
+    content:'';
+    position:fixed;inset:0;pointer-events:none;z-index:1000;
+    opacity:.035;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection{background:var(--rust);color:#000}
+
+  .mono{font-family:var(--mono);letter-spacing:.01em}
+  .micro{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+  /* APP SHELL */
+  #app{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    grid-template-rows:48px 1fr;
+    height:100vh;
+  }
+
+  /* TOP BAR */
+  .topbar{
+    grid-column:1 / -1;
+    display:grid;
+    grid-template-columns:220px 1fr auto;
+    align-items:center;
+    border-bottom:1px solid var(--line);
+    background:var(--bg);
+    z-index:50;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    height:100%;padding:0 16px;
+    border-right:1px solid var(--line);
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:12px;
+    color:var(--ink);
+    letter-spacing:.04em;
+  }
+  .brand .logo{
+    width:22px;height:22px;flex-shrink:0;color:var(--ink);
+  }
+  .brand .name{display:flex;flex-direction:column;line-height:1.1}
+  .brand .name b{font-weight:500;color:var(--ink);letter-spacing:.04em}
+  .brand .name small{
+    font-family:var(--mono);font-size:9px;color:var(--ink-3);letter-spacing:.22em;
+    text-transform:uppercase;margin-top:2px;
+  }
+
+  .topbar-mid{
+    display:flex;align-items:center;gap:14px;padding:0 18px;
+  }
+  .crumb{
+    font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    display:flex;align-items:center;gap:8px;
+  }
+  .crumb b{color:var(--ink-2);font-weight:500}
+  .crumb .sep{color:var(--ink-4)}
+  .search{
+    flex:1;max-width:520px;margin-left:24px;position:relative;
+  }
+  .search input{
+    width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);
+    color:var(--ink);font-family:var(--mono);font-size:12px;padding:6px 0 6px 18px;
+    outline:none;transition:border-color .2s;
+  }
+  .search input:focus{border-color:var(--rust)}
+  .search::before{
+    content:'';position:absolute;left:0;top:50%;width:10px;height:10px;
+    border:1px solid var(--ink-3);border-radius:50%;transform:translateY(-50%);
+  }
+  .search::after{
+    content:'';position:absolute;left:8px;top:50%;width:6px;height:1px;background:var(--ink-3);
+    transform:translateY(2px) rotate(45deg);transform-origin:left center;
+  }
+  .topbar-right{
+    display:flex;align-items:center;gap:0;height:100%;
+  }
+  .top-tab{
+    height:100%;padding:0 16px;display:flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-3);background:transparent;border:none;border-left:1px solid var(--line);
+    cursor:pointer;transition:color .15s,background .15s;position:relative;
+  }
+  .top-tab:hover{color:var(--ink)}
+  .top-tab.active{color:var(--ink)}
+  .top-tab.active::after{
+    content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--rust);
+  }
+  .top-tab .dot{width:4px;height:4px;border-radius:50%;background:var(--ink-4)}
+  .top-tab.active .dot{background:var(--lime)}
+  .sync{
+    padding:0 16px;height:100%;display:flex;align-items:center;gap:8px;
+    border-left:1px solid var(--line);
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;
+  }
+  .sync .pulse{width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px var(--lime);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* LEFT RAIL */
+  .rail{
+    border-right:1px solid var(--line);
+    display:flex;flex-direction:column;
+    padding:14px 10px;
+    background:var(--bg);
+    overflow-y:auto;
+  }
+  .rail::-webkit-scrollbar{display:none}
+  .rail-section{
+    font-family:var(--mono);font-size:9px;font-weight:400;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);
+    padding:6px 8px 8px;
+  }
+  /* OVERVIEW + WIKI quick row */
+  .rail-quick{
+    display:grid;grid-template-columns:1fr 40px;gap:6px;margin-bottom:10px;
+  }
+  .rail-overview{
+    height:40px;background:transparent;border:1px solid var(--line-2);
+    color:var(--ink);font-family:var(--mono);font-size:10px;font-weight:500;
+    letter-spacing:.12em;text-transform:uppercase;
+    padding:0 12px;cursor:pointer;text-align:left;
+    transition:all .15s;display:flex;align-items:center;gap:9px;
+    white-space:nowrap;overflow:hidden;
+  }
+  .rail-overview::before{
+    content:'';width:6px;height:6px;border-radius:50%;background:var(--rust);
+    box-shadow:0 0 8px var(--rust);flex-shrink:0;
+  }
+  .rail-overview:hover{border-color:var(--rust);color:var(--rust)}
+  .rail-overview.active{background:var(--rust-soft);border-color:var(--rust);color:var(--rust)}
+  .rail-wiki-shortcut{
+    height:40px;width:40px;background:transparent;border:1px solid var(--line-2);
+    color:var(--ink-2);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s;
+  }
+  .rail-wiki-shortcut svg{width:16px;height:16px;display:block}
+  .rail-wiki-shortcut:hover{border-color:var(--ink);color:var(--ink)}
+  .rail-wiki-shortcut.active{background:var(--bg-3);border-color:var(--line-3);color:var(--ink)}
+
+  .rail-btn{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 10px;margin-bottom:1px;
+    border:none;background:transparent;cursor:pointer;
+    color:var(--ink-2);
+    font-family:var(--sans);font-weight:400;font-size:13px;
+    text-align:left;
+    position:relative;
+    transition:all .12s;
+    border-left:2px solid transparent;
+  }
+  .rail-btn:hover{background:var(--bg-2);color:var(--ink)}
+  .rail-btn.active{
+    background:var(--bg-2);color:var(--ink);border-left-color:var(--rust);
+  }
+  .rail-btn .dot{
+    width:7px;height:7px;border-radius:50%;flex-shrink:0;
+    background:var(--ink-3);
+    transition:all .15s;
+  }
+  .rail-btn:hover .dot,.rail-btn.active .dot{transform:scale(1.15)}
+  .rail-btn .label{
+    flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .rail-btn .edit-hint{
+    font-family:var(--mono);font-size:10px;color:var(--ink-4);
+    opacity:0;transition:opacity .15s;
+  }
+  .rail-btn:hover .edit-hint{opacity:1}
+  .rail-divider{height:1px;background:var(--line);margin:8px 4px}
+  .rail-add{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 10px;margin:4px 0;
+    border:1px dashed var(--line-3);
+    background:transparent;color:var(--ink-3);cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    text-align:left;
+    transition:all .15s;
+  }
+  .rail-add:hover{border-color:var(--rust);color:var(--rust)}
+  .rail-add .plus{font-size:14px;width:7px;text-align:center}
+
+  /* MAIN */
+  .main{
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .view{
+    flex:1;
+    overflow:auto;
+    position:relative;
+  }
+  .view::-webkit-scrollbar{width:6px;height:6px}
+  .view::-webkit-scrollbar-track{background:transparent}
+  .view::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:0}
+
+  /* GRAPH */
+  .graph-wrap{
+    position:absolute;inset:0;
+    background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.012) 0%, transparent 70%);
+  }
+  .graph-grid{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
+    background-size:60px 60px;
+    pointer-events:none;
+  }
+  #graph{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+  #graph:active{cursor:grabbing}
+  .graph-overlay{
+    position:absolute;top:18px;left:18px;z-index:10;
+    pointer-events:none;
+  }
+  .graph-overlay h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);
+  }
+  .graph-overlay p{
+    font-family:var(--sans);font-size:13px;color:var(--ink-2);margin-top:4px;max-width:340px;
+  }
+  .graph-stats{
+    position:absolute;bottom:18px;left:18px;display:flex;gap:18px;z-index:10;
+    pointer-events:none;
+  }
+  .stat{
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;
+  }
+  .stat b{color:var(--ink);font-size:14px;font-weight:500;display:block;margin-bottom:2px;letter-spacing:0;text-transform:none}
+  .graph-controls{
+    position:absolute;top:18px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:10;
+  }
+  .gctl{
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    background:var(--bg-2);border:1px solid var(--line);
+    color:var(--ink-2);cursor:pointer;font-family:var(--mono);font-size:13px;
+    transition:all .15s;
+  }
+  .gctl:hover{border-color:var(--line-3);color:var(--ink)}
+  .legend{
+    position:absolute;bottom:18px;right:18px;z-index:10;
+    background:var(--bg-2);border:1px solid var(--line);padding:10px 12px;
+    font-family:var(--mono);font-size:10px;
+  }
+  .legend-row{display:flex;align-items:center;gap:8px;color:var(--ink-3);padding:2px 0}
+  .legend-row .swatch{width:8px;height:8px;border-radius:50%}
+
+  /* INBOX */
+  .inbox-wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:48px 32px 80px;
+  }
+  .inbox-head{margin-bottom:28px}
+  .inbox-head .micro{margin-bottom:8px}
+  .inbox-head h1{
+    font-family:var(--mono);font-size:24px;font-weight:400;letter-spacing:-.01em;color:var(--ink);
+  }
+  .inbox-head h1 b{color:var(--rust);font-weight:500}
+  .inbox-head p{color:var(--ink-3);margin-top:6px;max-width:580px;font-size:13px}
+
+  .inbox-card{
+    background:var(--bg-1);border:1px solid var(--line);
+    padding:0;margin-bottom:20px;
+  }
+  .url-row{
+    display:flex;align-items:center;border-bottom:1px solid var(--line);
+  }
+  .url-row .prefix{
+    padding:0 16px;font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    border-right:1px solid var(--line);height:52px;display:flex;align-items:center;letter-spacing:.1em;
+  }
+  .url-row input{
+    flex:1;background:transparent;border:none;outline:none;
+    font-family:var(--mono);color:var(--ink);font-size:13px;
+    padding:0 16px;height:52px;
+  }
+  .url-row input::placeholder{color:var(--ink-4)}
+  .url-row button{
+    border:none;background:var(--rust);color:#0a0a0a;
+    font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
+    padding:0 22px;height:52px;cursor:pointer;
+    transition:filter .15s;
+  }
+  .url-row button:hover{filter:brightness(1.08)}
+  .url-row button:disabled{background:var(--bg-3);color:var(--ink-4);cursor:not-allowed}
+
+  .drop-zone{
+    border:1px dashed var(--line-3);
+    margin:20px;padding:48px 24px;text-align:center;
+    transition:all .2s;cursor:pointer;
+    position:relative;
+  }
+  .drop-zone:hover,.drop-zone.over{
+    border-color:var(--rust);background:var(--rust-soft);
+  }
+  .drop-zone.over .drop-icon{transform:scale(1.1) rotate(-3deg)}
+  .drop-icon{
+    width:38px;height:38px;margin:0 auto 14px;
+    border:1px solid var(--ink-3);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:14px;color:var(--ink-2);
+    transition:transform .25s;
+  }
+  .drop-zone h3{
+    font-family:var(--mono);font-size:13px;font-weight:400;color:var(--ink);
+    letter-spacing:.02em;
+  }
+  .drop-zone p{color:var(--ink-3);font-size:12px;margin-top:6px}
+  .drop-zone .types{
+    display:flex;justify-content:center;gap:12px;margin-top:14px;
+    font-family:var(--mono);font-size:10px;color:var(--ink-4);letter-spacing:.16em;text-transform:uppercase;
+  }
+  .drop-zone .types span{padding:3px 8px;border:1px solid var(--line)}
+
+  /* Clipping progress / preview */
+  .clip-progress{
+    border-top:1px solid var(--line);padding:18px 20px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .clip-progress .glyph{
+    width:24px;height:24px;flex-shrink:0;border:1px solid var(--lime);
+    color:var(--lime);font-family:var(--mono);font-size:11px;font-weight:500;
+    display:flex;align-items:center;justify-content:center;
+    animation:spin 2s linear infinite;
+  }
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  .clip-progress .text{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+  .clip-error{
+    border-top:1px solid var(--line);padding:14px 20px;
+    font-family:var(--mono);font-size:12px;color:var(--rust);
+  }
+
+  .preview{
+    border:1px solid var(--line-2);background:var(--bg-1);margin-bottom:20px;
+  }
+  .preview-head{
+    padding:14px 20px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:14px;
+  }
+  .preview-head .micro{color:var(--lime)}
+  .preview-head .meta{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+  .preview-body{padding:16px 20px}
+  .preview-body input.title-input{
+    width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);
+    color:var(--ink);font-family:var(--mono);font-size:15px;padding:6px 0;outline:none;
+    margin-bottom:14px;
+  }
+  .preview-body input.title-input:focus{border-color:var(--rust)}
+  .preview-body textarea{
+    width:100%;min-height:240px;max-height:400px;background:var(--bg);
+    border:1px solid var(--line);color:var(--ink-2);
+    font-family:var(--mono);font-size:12px;line-height:1.6;
+    padding:14px;outline:none;resize:vertical;
+  }
+  .preview-body textarea:focus{border-color:var(--rust);color:var(--ink)}
+  .preview-routing{
+    padding:12px 20px;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+  }
+  .preview-routing .route-info{
+    font-family:var(--mono);font-size:11px;color:var(--ink-2);
+  }
+  .preview-routing .route-info b{color:var(--lime)}
+  .preview-routing select{
+    background:var(--bg);border:1px solid var(--line-2);color:var(--ink);
+    font-family:var(--mono);font-size:11px;padding:6px 10px;outline:none;
+  }
+  .preview-actions{
+    padding:14px 20px;border-top:1px solid var(--line);
+    display:flex;justify-content:flex-end;gap:8px;
+  }
+
+  .recents{margin-top:36px}
+  .recents-head{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;
+    border-bottom:1px solid var(--line);padding-bottom:10px;
+  }
+  .recents-head h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);
+  }
+  .recents-head .count{font-family:var(--mono);font-size:11px;color:var(--ink-4)}
+
+  .source-row{
+    display:grid;grid-template-columns:14px 1fr auto auto;gap:16px;
+    padding:14px 0;border-bottom:1px solid var(--line);align-items:center;
+  }
+  .source-row .marker{
+    width:6px;height:6px;border-radius:50%;background:var(--ink-4);
+    justify-self:center;
+  }
+  .source-row.processed .marker{background:var(--lime)}
+  .source-row.raw .marker{background:var(--rust)}
+  .source-row .title{font-size:13px;color:var(--ink);min-width:0}
+  .source-row .title small{
+    display:block;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    margin-top:2px;letter-spacing:.06em;
+  }
+  .source-row .compartment{
+    font-family:var(--mono);font-size:10px;color:var(--ink-2);letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 8px;border:1px solid var(--line);
+  }
+  .source-row .status{
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;
+  }
+
+  /* WIKI */
+  .wiki-wrap{
+    display:grid;grid-template-columns:240px 1fr;height:100%;
+  }
+  .page-list{
+    border-right:1px solid var(--line);overflow-y:auto;padding:18px 0;
+    background:var(--bg-1);
+  }
+  .page-list-head{
+    padding:0 18px 12px;display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:1px solid var(--line);margin-bottom:8px;
+  }
+  .page-list-head h3{
+    font-family:var(--mono);font-size:10px;font-weight:400;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);
+  }
+  .page-list-head .new{
+    background:transparent;border:none;color:var(--rust);
+    font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.04em;
+  }
+  .page-item{
+    width:100%;text-align:left;background:transparent;border:none;cursor:pointer;
+    padding:8px 18px;color:var(--ink-2);font-family:var(--sans);font-size:13px;
+    border-left:2px solid transparent;
+    transition:all .12s;
+  }
+  .page-item:hover{background:var(--bg-2);color:var(--ink)}
+  .page-item.active{background:var(--bg-2);color:var(--ink);border-left-color:var(--rust)}
+  .page-item .meta{
+    display:block;font-family:var(--mono);font-size:10px;color:var(--ink-4);
+    margin-top:2px;letter-spacing:.06em;
+  }
+
+  .page-content{overflow-y:auto;padding:0}
+  .page-header{
+    padding:48px 56px 24px;border-bottom:1px solid var(--line);
+  }
+  .page-header .micro{margin-bottom:10px}
+  .page-header h1{
+    font-family:var(--mono);font-size:32px;font-weight:400;color:var(--ink);
+    letter-spacing:-.01em;line-height:1.15;
+  }
+  .page-header input.title-edit{
+    width:100%;background:transparent;border:none;border-bottom:1px solid var(--rust);
+    color:var(--ink);font-family:var(--mono);font-size:32px;font-weight:400;
+    letter-spacing:-.01em;line-height:1.15;padding:0 0 4px;outline:none;
+  }
+  .page-meta{
+    display:flex;gap:18px;margin-top:14px;
+    font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.04em;
+  }
+  .page-meta span b{color:var(--ink-2);font-weight:500;margin-left:4px}
+  .page-actions{
+    display:flex;gap:8px;margin-top:18px;
+  }
+  .btn{
+    background:transparent;border:1px solid var(--line-2);color:var(--ink-2);
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    padding:8px 14px;cursor:pointer;transition:all .15s;
+  }
+  .btn:hover{border-color:var(--line-3);color:var(--ink)}
+  .btn.primary{background:var(--rust);color:#0a0a0a;border-color:var(--rust)}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.lime{border-color:var(--lime);color:var(--lime)}
+  .btn.lime:hover{background:var(--lime-soft)}
+  .btn.danger{border-color:var(--rust);color:var(--rust)}
+  .btn.danger:hover{background:var(--rust);color:#0a0a0a}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  .markdown{
+    padding:32px 56px 80px;max-width:780px;
+  }
+  .markdown h1{display:none}
+  .markdown h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);
+    margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);
+  }
+  .markdown h2:first-child{margin-top:0}
+  .markdown p{color:var(--ink);margin-bottom:14px;font-size:14.5px;line-height:1.7}
+  .markdown ul{margin:0 0 16px;padding:0;list-style:none}
+  .markdown li{
+    padding:6px 0 6px 20px;color:var(--ink);position:relative;font-size:14px;line-height:1.65;
+  }
+  .markdown li::before{
+    content:'';position:absolute;left:0;top:14px;width:8px;height:1px;background:var(--rust);
+  }
+  .markdown a[data-wikilink]{
+    color:var(--rust);text-decoration:none;border-bottom:1px solid var(--rust-soft);
+    padding-bottom:1px;cursor:pointer;
+  }
+  .markdown a[data-wikilink]:hover{border-bottom-color:var(--rust);background:var(--rust-soft)}
+  .markdown a[data-wikilink].auto{
+    color:var(--ink);
+    border-bottom:1px dashed rgba(204,255,0,.45);
+    background:none;
+  }
+  .markdown a[data-wikilink].auto:hover{
+    color:var(--lime);
+    border-bottom-color:var(--lime);
+    background:var(--lime-soft);
+  }
+  .markdown code{
+    font-family:var(--mono);background:var(--bg-3);padding:1px 6px;font-size:.9em;color:var(--lime);
+  }
+
+  /* TAG CHIPS */
+  .page-tags{
+    display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;align-items:center;
+  }
+  .tag-chip{
+    font-family:var(--mono);font-size:10px;font-weight:400;letter-spacing:.06em;
+    padding:4px 9px;background:var(--lime-soft);color:var(--lime);
+    border:1px solid rgba(204,255,0,.28);
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:all .15s;text-transform:lowercase;
+  }
+  .tag-chip:hover{background:var(--lime);color:#0a0a0a;border-color:var(--lime)}
+  .tag-chip.active{background:var(--lime);color:#0a0a0a;border-color:var(--lime)}
+  .tag-chip .x{
+    opacity:.55;font-size:11px;line-height:1;
+    border-left:1px solid currentColor;padding-left:6px;
+  }
+  .tag-chip .x:hover{opacity:1}
+  .tag-add{
+    font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+    padding:4px 9px;background:transparent;color:var(--ink-3);
+    border:1px dashed var(--line-3);cursor:pointer;
+    display:inline-flex;align-items:center;gap:4px;
+    transition:all .15s;
+  }
+  .tag-add:hover{border-color:var(--lime);color:var(--lime)}
+  .tag-add input{
+    background:transparent;border:none;outline:none;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+    width:90px;padding:0;
+  }
+  .tag-filter-banner{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 18px;background:var(--lime-soft);
+    border-bottom:1px solid rgba(204,255,0,.2);
+    font-family:var(--mono);font-size:11px;color:var(--lime);
+    letter-spacing:.04em;
+  }
+  .tag-filter-banner button{
+    background:none;border:none;color:var(--lime);cursor:pointer;
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    text-decoration:underline;
+  }
+
+  /* Editor */
+  .md-editor{
+    padding:24px 56px 32px;
+  }
+  .md-editor textarea{
+    width:100%;min-height:480px;background:var(--bg);
+    border:1px solid var(--line-2);color:var(--ink);
+    font-family:var(--mono);font-size:13px;line-height:1.7;
+    padding:18px;outline:none;resize:vertical;
+  }
+  .md-editor textarea:focus{border-color:var(--rust)}
+  .md-editor .hint{
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    margin-top:8px;letter-spacing:.04em;
+  }
+  .md-editor .hint b{color:var(--rust);font-weight:500}
+
+  /* CONTEXT DRAWER */
+  .ctx-drawer{
+    border-top:1px solid var(--line);
+    background:var(--bg-1);
+  }
+  .ctx-toggle{
+    width:100%;background:transparent;border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 56px;font-family:var(--mono);font-size:11px;
+    color:var(--ink-3);letter-spacing:.18em;text-transform:uppercase;
+    transition:color .15s;
+  }
+  .ctx-toggle:hover{color:var(--ink)}
+  .ctx-toggle .arrow{
+    width:8px;height:8px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;
+    transform:rotate(45deg);transition:transform .25s;
+  }
+  .ctx-drawer.open .ctx-toggle .arrow{transform:rotate(-135deg)}
+  .ctx-body{
+    max-height:0;overflow:hidden;transition:max-height .3s ease;
+  }
+  .ctx-drawer.open .ctx-body{max-height:600px}
+  .ctx-grid{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;
+    background:var(--line);border-top:1px solid var(--line);
+  }
+  .ctx-cell{background:var(--bg-1);padding:20px 28px}
+  .ctx-cell h4{
+    font-family:var(--mono);font-size:10px;font-weight:400;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;
+  }
+  .ctx-item{
+    padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-2);
+    cursor:pointer;transition:color .15s;
+  }
+  .ctx-item:hover{color:var(--ink)}
+  .ctx-item:last-child{border-bottom:none}
+  .ctx-item small{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-4);margin-top:2px}
+  .ai-tip{
+    background:var(--lime-soft);border-left:2px solid var(--lime);
+    padding:10px 12px;font-size:12px;color:var(--ink);
+  }
+
+  /* REVIEW */
+  .review-wrap{padding:36px 48px;max-width:980px;margin:0 auto}
+  .review-head{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:24px;
+  }
+  .review-head h1{
+    font-family:var(--mono);font-size:22px;font-weight:400;color:var(--ink);
+  }
+  .review-head h1 b{color:var(--rust)}
+  .review-head .micro{margin-bottom:8px;display:block}
+  .prop{
+    border:1px solid var(--line);background:var(--bg-1);
+    padding:20px 24px;margin-bottom:14px;
+  }
+  .prop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+  .prop-tags{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+  .tag{
+    font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+    padding:3px 8px;border:1px solid var(--line-2);color:var(--ink-3);
+  }
+  .tag.high{color:var(--lime);border-color:var(--lime)}
+  .tag.medium{color:var(--rust);border-color:var(--rust)}
+  .tag.low{color:var(--ink-3)}
+  .prop h3{
+    font-family:var(--mono);font-size:15px;font-weight:500;color:var(--ink);margin-bottom:8px;
+  }
+  .prop .reasoning{font-size:13px;color:var(--ink-2);margin-bottom:8px}
+  .prop .source-ref{
+    font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.04em;
+  }
+  .prop pre{
+    margin-top:14px;background:var(--bg);border:1px solid var(--line);
+    padding:14px;font-family:var(--mono);font-size:12px;color:var(--ink-2);
+    white-space:pre-wrap;line-height:1.6;max-height:240px;overflow:auto;
+  }
+  .prop-actions{display:flex;gap:6px;flex-shrink:0}
+  .empty{
+    border:1px solid var(--line);padding:80px 24px;text-align:center;
+  }
+  .empty .glyph{
+    width:48px;height:48px;margin:0 auto 16px;border:1px solid var(--line-3);
+    display:flex;align-items:center;justify-content:center;color:var(--lime);font-family:var(--mono);
+  }
+  .empty h3{font-family:var(--mono);font-size:15px;font-weight:400;color:var(--ink)}
+  .empty p{color:var(--ink-3);font-size:13px;margin-top:6px;max-width:340px;margin-inline:auto}
+
+  /* RESEARCH */
+  .research-wrap{padding:36px 48px;max-width:1100px;margin:0 auto}
+  .mission-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .mission{
+    border:1px solid var(--line);background:var(--bg-1);padding:22px 24px;
+  }
+  .mission h3{
+    font-family:var(--mono);font-size:14px;color:var(--ink);margin-bottom:8px;
+  }
+  .mission .status{
+    font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.16em;text-transform:uppercase;
+  }
+  .mission ol{list-style:none;margin-top:14px;counter-reset:step}
+  .mission li{
+    counter-increment:step;
+    padding:8px 0 8px 28px;color:var(--ink-2);font-size:13px;position:relative;
+    border-bottom:1px solid var(--line);
+  }
+  .mission li::before{
+    content:counter(step,decimal-leading-zero);
+    position:absolute;left:0;top:8px;
+    font-family:var(--mono);font-size:10px;color:var(--ink-4);letter-spacing:.06em;
+  }
+  .mission .run{margin-top:14px}
+
+  /* MODAL */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;z-index:200;
+  }
+  .modal-bg.open{display:flex}
+  .modal{
+    background:var(--bg-1);border:1px solid var(--line-2);
+    width:420px;max-width:90vw;padding:28px;
+  }
+  .modal h2{
+    font-family:var(--mono);font-size:14px;font-weight:500;color:var(--ink);
+    margin-bottom:18px;letter-spacing:.04em;
+  }
+  .modal label{
+    display:block;font-family:var(--mono);font-size:10px;color:var(--ink-3);
+    letter-spacing:.18em;text-transform:uppercase;margin:14px 0 6px;
+  }
+  .modal input[type=text]{
+    width:100%;background:var(--bg);border:1px solid var(--line);
+    color:var(--ink);font-family:var(--mono);font-size:13px;
+    padding:10px 12px;outline:none;
+  }
+  .modal input[type=text]:focus{border-color:var(--rust)}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}
+
+  /* TOAST */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--bg-3);border:1px solid var(--line-3);
+    padding:12px 18px;font-family:var(--mono);font-size:12px;color:var(--ink);
+    z-index:300;opacity:0;pointer-events:none;
+    transition:all .25s;display:flex;align-items:center;gap:10px;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast .pulse{width:6px;height:6px;border-radius:50%;background:var(--lime)}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true">
+        <path d="M164.76,46.4c.81,11.62-8.38,21.31-19.84,21.31-2.24,0-5.5-1.02-7.7-1.82-2.74-.99-5.73-1.18-8.51-.3-3.77,1.2-9.12,3.77-8.96,10.58.25,10.98-8.9,19.89-19.89,19.89s-19.89-8.91-19.89-19.89h0c0-1.05-.18-2.08-.56-3.04-1.75-4.48-5.13-6.65-9.14-7.33-2.38-.41-4.81.05-7.03,1.02-2.43,1.06-5.12,1.65-7.94,1.65-11.45,0-20.64-9.68-19.84-21.3.68-9.8,8.62-17.74,18.42-18.42,11.62-.8,21.3,8.38,21.3,19.84,0,0,0,.01,0,.02,0,1.48.35,2.95,1.09,4.24,2.13,3.76,5.2,6.11,9.8,6.59,1.73.18,3.47-.24,4.98-1.09.08-.05.14-.08.14-.08.65-.37,2.74-1.83,2.75-5.15.02-3.57-1.53-4.7-2.98-5.49-6.83-3.75-11.89-10.58-11.54-18.94.41-9.96,8.33-18.18,18.27-18.96,11.71-.92,21.49,8.32,21.49,19.82,0,7.71-4.37,14.38-10.78,17.69,0,0-.02,0-.05.03-.02,0-.05.02-.07.03-.02.01-.05.03-.07.04-.65.38-2.73,1.91-2.72,5.77.02,3.31,3.28,5.28,3.48,5.38.85.44,1.79.71,2.75.7,5.82-.08,9.6-2.54,12.04-6.6.86-1.43,1.27-3.07,1.27-4.74v-.02c0-11.45,9.67-20.64,21.29-19.84,9.8.68,17.75,8.62,18.43,18.42Z"/>
+        <path d="M50.14,120.71c-6.16-3.82-13.6-4.73-20.32-.75-10.04,5.95-13.17,18.27-7.02,28.09,5.31,8.47,15.1,10.82,24.36,6.77,8.82-3.85,12.28-10.57,12.06-18.39-.05-1.66-.46-3.89,2.67-5.72,1.45-.85,2.77-.69,3.85-.53,1.43.22,3.12,1.93,3.79,2.83,3.23,4.29,3.1,9.59.46,14.19-.03.04-.05.09-.08.13-.74,1.27-1.82,2.3-3.08,3.05l-.04.02c-9.99,5.92-13.05,19.03-6.41,28.63,5.61,8.11,16.59,10.85,25.49,6.37,10.54-5.31,14.29-18.25,8.43-28.13-1.44-2.44-3.33-4.45-5.5-6-1.97-1.41-3.61-3.27-4.48-5.53-1.45-3.81-1.3-7.84,1.72-11.67.65-.82,1.45-1.52,2.36-2.05h.01c9.57-5.68,12.79-17.97,7.17-27.45-5.62-9.48-18.07-12.77-27.51-6.88-5.86,3.66-10.84.37-13.81-2.27-2.19-1.94-3.55-4.62-4.09-7.5-.43-2.31-1.21-5.64-2.35-7.58-5.86-9.88-19.01-12.8-28.73-6.1-8.2,5.66-11.06,16.61-6.64,25.42,5.24,10.44,18.2,14.03,28.19,8.11h.02c1.45-.87,3.1-1.37,4.79-1.36,4.79,0,8.87,2,11.91,6.98.5.82,2.38,4.56-.62,7.11s-6.59.19-6.59.19Z"/>
+        <path d="M151.73,118.9c6.04-3.93,13.18-4.37,19.95-.56,10.11,5.7,13.82,19.74,6.87,28.93-5.47,7.24-14.26,10.59-23.55,6.77s-11.65-9.79-12.21-17.71c-.12-1.65.14-4.24-2.88-6.21-1.46-.95-5.02-1.63-8.53,3.32-3.09,4.35-2.5,9.49.23,14.01.03.04.05.09.08.13.76,1.25,1.86,2.25,3.13,2.97l.04.02c10.06,5.67,13.39,18.63,6.99,28.33-5.4,8.18-16.26,11.15-25.2,6.89-10.6-5.05-14.6-17.83-8.99-27.78,1.38-2.45,3.22-4.5,5.34-6.09,1.93-1.44,3.52-3.33,4.33-5.6,1.36-3.82,1.12-7.82-1.96-11.56-.66-.81-1.48-1.48-2.39-1.99h-.01c-9.64-5.44-12.86-18.68-7.48-28.23,5.38-9.55,17.33-12.92,26.85-7.27,5.91,3.51,10.89,1.06,13.79-1.62,2.13-1.97,3.43-4.68,3.9-7.54.38-2.31,1.08-5.64,2.17-7.59,5.61-9.95,18.62-13.14,28.43-6.69,8.28,5.44,11.36,16.28,7.15,25.13-4.99,10.49-17.79,14.35-27.85,8.68h-.02c-1.46-.83-3.11-1.29-4.79-1.25-4.76.11-8.78,2.18-11.69,7.2-.48.83-1.74,4.07,1.3,6.53s6.99-1.21,6.99-1.21Z"/>
+      </svg>
+      <div class="name">
+        <b>AI Wiki Vault</b>
+        <small>Second Brain</small>
+      </div>
+    </div>
+    <div class="topbar-mid">
+      <div class="crumb mono" id="crumb">
+        <b id="crumbCompartment">All</b>
+        <span class="sep">/</span>
+        <span id="crumbView">Graph</span>
+      </div>
+      <div class="search">
+        <input id="search" placeholder="search vault — pages, sources, claims" />
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="top-tab active" data-tab="graph"><span class="dot"></span>Graph</button>
+      <button class="top-tab" data-tab="wiki"><span class="dot"></span>Wiki</button>
+      <button class="top-tab" data-tab="inbox"><span class="dot"></span>Inbox</button>
+      <button class="top-tab" data-tab="review"><span class="dot"></span>Review</button>
+      <button class="top-tab" data-tab="research"><span class="dot"></span>Research</button>
+      <div class="sync"><span class="pulse"></span> Synced</div>
+    </div>
+  </header>
+
+  <aside class="rail" id="rail"></aside>
+
+  <main class="main">
+    <div class="view" id="view"></div>
+  </main>
+</div>
+
+<!-- Compartment editor modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2 id="modalTitle">New compartment</h2>
+    <label>Name</label>
+    <input type="text" id="modalName" placeholder="e.g. Trading / Finance" />
+    <label>Description</label>
+    <input type="text" id="modalDesc" placeholder="short focus statement" />
+    <div class="modal-actions">
+      <button class="btn danger" id="modalDelete" style="margin-right:auto;display:none">Delete</button>
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn primary" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="pulse"></span><span id="toastMsg"></span></div>
+
+<script>
+/* ============================================================
+   PDF.js worker
+============================================================ */
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+const STORAGE_KEY = 'vault-state-v4';
+
+const seed = {
+  activeCompartment: 'all',
+  activeTab: 'graph',
+  selectedPageId: null,
+  ctxOpen: false,
+  editingPageId: null,
+  activeTag: null,
+  compartments: [
+    { id:'trading', name:'Trading / Finance', desc:'Small-cap shorts, 13F, catalysts, risk.' },
+    { id:'design',  name:'Design',             desc:'Motion, typography, branding, references.' },
+    { id:'agents',  name:'AI / Coding',        desc:'OpenClaw, Hermes, Claude, mission control.' },
+    { id:'fitness', name:'Fitness / Life',     desc:'Training logs, HR, 2.4 km, recovery.' }
+  ],
+  pages: [
+    { id:'risk-management', cid:'trading', title:'Risk Management', type:'concept', confidence:'high',
+      sources:['s-trading-note'], tags:['risk','sizing','process'],
+      md:'# Risk Management\n\n## Summary\n\nRisk management is the shared operating system behind trading, training, and AI-token usage. A cross-compartment concept rather than a trading-only note.\n\n## Key Ideas\n\n- Define maximum loss before entering.\n- Tie daily loss to average green day, not emotion.\n- Separate process from variance in review logs.\n- Cross-link with fitness — pacing and drawdown share restraint.\n\n## Claims\n\n- Decisions should separate setup quality from outcome.\n- Simulation prepares; it does not predict.'},
+    { id:'parabolic-shorts', cid:'trading', title:'Parabolic Shorts', type:'strategy', confidence:'medium',
+      sources:['s-trading-note'], tags:['short-selling','small-cap','setups'],
+      md:'# Parabolic Shorts\n\n## Summary\n\nA setup focused on overheated small-caps where price extends rapidly and risk can be defined near the high of day.\n\n## Key Ideas\n\n- Avoid crowded or unclear structures.\n- Look for lower highs after emotional extension.\n- Size based on stop distance and account risk per Position Sizing rules.\n- Log failed thesis conditions in detail.\n\n## Notes\n\nRefer back to Risk Management for the broader operating frame.'},
+    { id:'position-sizing', cid:'trading', title:'Position Sizing', type:'concept', confidence:'high',
+      sources:['s-trading-note'], tags:['risk','sizing'],
+      md:'# Position Sizing\n\n## Summary\n\nPosition Sizing converts a thesis into controlled risk.\n\n## Key Ideas\n\n- Define dollar risk before share size.\n- Use half-Kelly only after edge is measured.\n- Sit inside the broader Risk Management frame.'},
+    { id:'thirteen-f', cid:'trading', title:'13F Tracking', type:'workflow', confidence:'medium',
+      sources:[], tags:['filings','funds','process'],
+      md:'# 13F Tracking\n\n## Summary\n\nQuarterly tracking of fund positions for context, not signal. Risk Management still applies even when context is bullish.'},
+
+    { id:'negative-space', cid:'design', title:'Negative Space', type:'principle', confidence:'medium',
+      sources:['s-design-note'], tags:['branding','principles'],
+      md:'# Negative Space\n\n## Summary\n\nDeliberate use of empty area to create a second layer of meaning.\n\n## Notes\n\nLogo Wit and Typography Systems both rely on this principle.'},
+    { id:'logo-wit', cid:'design', title:'Logo Wit', type:'principle', confidence:'medium',
+      sources:['s-design-note'], tags:['branding','principles'],
+      md:'# Logo Wit\n\n## Summary\n\nCompact visual idea that rewards the viewer. Often built on Negative Space.'},
+    { id:'typography', cid:'design', title:'Typography Systems', type:'principle', confidence:'medium',
+      sources:['s-design-note'], tags:['typography','principles'],
+      md:'# Typography Systems\n\n## Summary\n\nPair display voice with body voice; assign weights, sizes, rhythms. The same restraint that powers Negative Space applies to type.'},
+    { id:'motion', cid:'design', title:'Motion Curves', type:'principle', confidence:'low',
+      sources:[], tags:['motion','3d-motion','principles'],
+      md:'# Motion Curves\n\n## Summary\n\nEasing as character. Bezier choices define brand tempo. Often paired with Title Sequences and 3D Motion.'},
+    { id:'title-seq', cid:'design', title:'Title Sequences', type:'discipline', confidence:'medium',
+      sources:[], tags:['title-sequence','motion','3d-motion'],
+      md:'# Title Sequences\n\n## Summary\n\nNarrative-led motion at the start of a film or product. Typography Systems and Motion Curves do most of the work.'},
+    { id:'three-d-motion', cid:'design', title:'3D Motion Design', type:'discipline', confidence:'medium',
+      sources:[], tags:['3d-motion','motion'],
+      md:'# 3D Motion Design\n\n## Summary\n\nVolumetric form, light, camera as motion language. Shares principles with 2D motion but gains a depth axis. Often briefed alongside Title Sequences.'},
+
+    { id:'llm-wiki', cid:'agents', title:'LLM Wiki Pattern', type:'architecture', confidence:'high',
+      sources:['s-karpathy-wiki'], tags:['architecture','wiki','karpathy'],
+      md:'# LLM Wiki Pattern\n\n## Summary\n\nAn LLM-maintained wiki uses raw sources as truth and treats generated pages as a living synthesis layer. The AI Librarian writes proposals; the Review Queue gates them. Token Budget keeps cost honest.'},
+    { id:'ai-librarian', cid:'agents', title:'AI Librarian', type:'agent-role', confidence:'medium',
+      sources:['s-karpathy-wiki'], tags:['agents','wiki'],
+      md:'# AI Librarian\n\n## Summary\n\nReads sources, extracts structure, proposes links, waits for approval before modifying the vault. Sits between raw sources and the LLM Wiki Pattern. Output flows into the Review Queue.'},
+    { id:'review-queue', cid:'agents', title:'Review Queue', type:'workflow', confidence:'high',
+      sources:[], tags:['workflow','wiki','quality'],
+      md:'# Review Queue\n\n## Summary\n\nAll AI proposals queue here. The anti-slop layer that protects the LLM Wiki Pattern from drift. Reviewing is part of the AI Librarian feedback loop.'},
+    { id:'token-budget', cid:'agents', title:'Token Budget', type:'concept', confidence:'medium',
+      sources:[], tags:['cost','risk','agents'],
+      md:'# Token Budget\n\n## Summary\n\nToken cost behaves like financial risk. The same Risk Management instinct applies — define ingest tiers and reserve deep ingest for high-value sources.'},
+
+    { id:'training-load', cid:'fitness', title:'Training Load', type:'concept', confidence:'medium',
+      sources:['s-fitness-note'], tags:['training','recovery'],
+      md:'# Training Load\n\n## Summary\n\nTraining load should rise gradually. Trends matter more than single sessions. Closely tied to Heart Rate Zones — and the same restraint that defines Risk Management.'},
+    { id:'heart-rate', cid:'fitness', title:'Heart Rate Zones', type:'metric', confidence:'medium',
+      sources:['s-fitness-note'], tags:['training','metrics'],
+      md:'# Heart Rate Zones\n\n## Summary\n\nZ2 dominates volume. Z4 reserved for race-specific blocks. Training Load should match the chosen zone distribution.'},
+    { id:'two-four-km', cid:'fitness', title:'2.4 km Time Trial', type:'log', confidence:'high',
+      sources:['s-fitness-note'], tags:['training','benchmark'],
+      md:'# 2.4 km Time Trial\n\n## Summary\n\nMonthly benchmark. Track pacing, HR drift, recovery. Read alongside Heart Rate Zones and Training Load.'}
+  ],
+  sources: [
+    { id:'s-karpathy-wiki', cid:'agents', type:'URL', title:'Karpathy LLM Wiki Notes',
+      url:'https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f',
+      status:'processed', summary:'Raw-source-first AI-maintained wiki pattern.' },
+    { id:'s-trading-note', cid:'trading', type:'Note', title:'Small-cap Shorting Framework',
+      url:'', status:'processed', summary:'Notes on parabolic shorts, risk, sizing.' },
+    { id:'s-design-note', cid:'design', type:'Note', title:'Design Principles Collection',
+      url:'', status:'processed', summary:'Negative space, wit, brand systems.' },
+    { id:'s-fitness-note', cid:'fitness', type:'Log', title:'HR Base Training Notes',
+      url:'', status:'processed', summary:'Low-intensity base, race-specific blocks.' }
+  ],
+  proposals: [
+    { id:'p1', cid:'trading', sid:'s-karpathy-wiki', type:'cross_link',
+      title:'Cross-link: Risk Management ↔ Token Budget', target:'risk-management',
+      confidence:'high', status:'pending',
+      reasoning:'Risk management appears across trading, fitness, and AI token budgeting.',
+      content:'Add cross-compartment links from Risk Management to Training Load and Token Budget.' },
+    { id:'p2', cid:'agents', sid:'s-karpathy-wiki', type:'update_page',
+      title:'Update LLM Wiki with review-queue rule', target:'llm-wiki',
+      confidence:'high', status:'pending',
+      reasoning:'Prevent direct AI writes — route changes through proposals.',
+      content:'Add: AI-generated wiki updates must enter the Review Queue before becoming canonical.' }
+  ],
+  missions: [
+    { id:'m1', cid:'agents', title:'AI + Obsidian workflows', status:'draft',
+      steps:['Collect sources','Ingest transcripts/articles','Generate synthesis','Propose wiki updates'] },
+    { id:'m2', cid:'trading', title:'Small-cap evidence map', status:'draft',
+      steps:['Collect filings','Extract catalysts','Map claims','Create risk checklist'] }
+  ]
+};
+
+function migrate(s){
+  if (!s) return structuredClone(seed);
+  s.pages = (s.pages||[]).map(p => ({ ...p, tags: Array.isArray(p.tags) ? p.tags : [] }));
+  if (s.activeTag === undefined) s.activeTag = null;
+  if (s.editingPageId === undefined) s.editingPageId = null;
+  return s;
+}
+let state = (() => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return migrate(JSON.parse(raw));
+  } catch(e){}
+  return structuredClone(seed);
+})();
+function save(){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){} }
+
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const compartmentOf = id => state.compartments.find(c => c.id === id);
+const pagesIn = cid => cid==='all' ? state.pages : state.pages.filter(p=>p.cid===cid);
+const sourcesIn = cid => cid==='all' ? state.sources : state.sources.filter(s=>s.cid===cid);
+const propsIn = cid => state.proposals.filter(p => (cid==='all'||p.cid===cid) && p.status==='pending');
+
+function toast(msg){
+  const t=$('#toast'); $('#toastMsg').textContent=msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+/* escape regex special chars */
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/* explicit [[wikilinks]] only */
+function explicitLinks(page){
+  if (!page) return [];
+  const ids = new Set();
+  [...(page.md||'').matchAll(/\[\[([^\]]+?)\]\]/g)].forEach(m => {
+    const ref = m[1].toLowerCase().trim();
+    const t = state.pages.find(p => p.title.toLowerCase() === ref);
+    if (t && t.id !== page.id) ids.add(t.id);
+  });
+  return [...ids];
+}
+/* auto-detected: any other page's title appearing in body text (case-insensitive whole word),
+   excluding what's already inside [[ ]] (we strip those before matching) */
+function autoMentionLinks(page){
+  if (!page) return [];
+  const stripped = (page.md||'').replace(/\[\[[^\]]+?\]\]/g, '');
+  const body = ' ' + stripped.toLowerCase() + ' ';
+  const ids = new Set();
+  state.pages.forEach(other => {
+    if (other.id === page.id) return;
+    const re = new RegExp(`\\b${escRe(other.title.toLowerCase())}\\b`);
+    if (re.test(body)) ids.add(other.id);
+  });
+  return [...ids];
+}
+/* tag overlap (soft) */
+function tagOverlapLinks(page){
+  if (!page || !page.tags || !page.tags.length) return [];
+  const tagSet = new Set(page.tags);
+  const ids = new Set();
+  state.pages.forEach(other => {
+    if (other.id === page.id) return;
+    if (!other.tags) return;
+    if (other.tags.some(t => tagSet.has(t))) ids.add(other.id);
+  });
+  return [...ids];
+}
+/* combined: union of explicit + auto-mention + tag-overlap (used for context drawer) */
+function pageWikilinks(page){
+  if (!page) return [];
+  const ids = new Set([
+    ...explicitLinks(page),
+    ...autoMentionLinks(page),
+    ...tagOverlapLinks(page)
+  ]);
+  return [...ids];
+}
+
+/* compartment colors */
+const COMPARTMENT_HUE = { trading:18, design:340, agents:68, fitness:140 };
+function compartmentColor(cid){
+  const idx = state.compartments.findIndex(c=>c.id===cid);
+  const hue = COMPARTMENT_HUE[cid] ?? (idx*47 + 18) % 360;
+  return `hsl(${hue}, 50%, 62%)`;
+}
+
+/* ============================================================
+   RAIL — overview, wiki shortcut, compartments
+============================================================ */
+function renderRail(){
+  const rail = $('#rail');
+  const isOverview = state.activeTab==='graph' && state.activeCompartment==='all';
+  const isWiki = state.activeTab==='wiki';
+  rail.innerHTML = `
+    <div class="rail-quick">
+      <button class="rail-overview ${isOverview?'active':''}" id="goOverview">// Overview Graph</button>
+      <button class="rail-wiki-shortcut ${isWiki?'active':''}" id="goWiki" title="Open Wiki">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4z"/>
+          <path d="M4 17a3 3 0 0 1 3-3h11"/>
+          <path d="M9 8h5"/>
+        </svg>
+      </button>
+    </div>
+    <div class="rail-divider"></div>
+    <div class="rail-section">// Compartments</div>
+    ${state.compartments.map(c => `
+      <button class="rail-btn ${state.activeCompartment===c.id?'active':''}" data-cid="${c.id}" data-edit="${c.id}" title="Right-click or double-click to edit">
+        <span class="dot" style="background:${compartmentColor(c.id)}"></span>
+        <span class="label">${escape(c.name)}</span>
+        <span class="edit-hint">⋯</span>
+      </button>
+    `).join('')}
+    <button class="rail-add" id="addCompartment" title="New compartment">
+      <span class="plus">+</span>
+      <span>New compartment</span>
+    </button>
+  `;
+  $('#goOverview').onclick = () => {
+    state.activeCompartment = 'all';
+    state.activeTab = 'graph';
+    syncTopTabs();
+    render();
+  };
+  $('#goWiki').onclick = () => {
+    state.activeTab = 'wiki';
+    syncTopTabs();
+    render();
+  };
+  $$('#rail .rail-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      state.activeCompartment = b.dataset.cid;
+      const sel = state.pages.find(p=>p.id===state.selectedPageId);
+      if (sel && state.activeCompartment!=='all' && sel.cid!==state.activeCompartment) state.selectedPageId=null;
+      render();
+    });
+    b.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (b.dataset.edit) openCompartmentModal(b.dataset.edit);
+    });
+    b.addEventListener('dblclick', () => {
+      if (b.dataset.edit) openCompartmentModal(b.dataset.edit);
+    });
+  });
+  $('#addCompartment').onclick = () => openCompartmentModal(null);
+}
+
+function syncTopTabs(){
+  $$('.top-tab').forEach(x => x.classList.toggle('active', x.dataset.tab===state.activeTab));
+}
+
+/* ============================================================
+   COMPARTMENT MODAL
+============================================================ */
+let editingCompartment = null;
+function openCompartmentModal(cid){
+  editingCompartment = cid ? compartmentOf(cid) : null;
+  $('#modalTitle').textContent = cid ? 'Edit compartment' : 'New compartment';
+  $('#modalName').value = editingCompartment?.name || '';
+  $('#modalDesc').value = editingCompartment?.desc || '';
+  $('#modalDelete').style.display = cid ? 'inline-block' : 'none';
+  $('#modalBg').classList.add('open');
+  setTimeout(()=>$('#modalName').focus(),50);
+}
+$('#modalCancel').onclick = () => $('#modalBg').classList.remove('open');
+$('#modalBg').onclick = e => { if(e.target.id==='modalBg') $('#modalBg').classList.remove('open'); };
+$('#modalSave').onclick = () => {
+  const name = $('#modalName').value.trim();
+  const desc = $('#modalDesc').value.trim();
+  if (!name) { $('#modalName').focus(); return; }
+  if (editingCompartment) {
+    Object.assign(editingCompartment, { name, desc });
+    toast('Compartment updated');
+  } else {
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24) + '-' + Date.now().toString().slice(-3);
+    state.compartments.push({ id, name, desc });
+    state.activeCompartment = id;
+    toast('Compartment created');
+  }
+  $('#modalBg').classList.remove('open');
+  save(); render();
+};
+$('#modalDelete').onclick = () => {
+  if (!editingCompartment) return;
+  if (!confirm(`Delete "${editingCompartment.name}"? Pages and sources in this compartment will also be removed.`)) return;
+  state.compartments = state.compartments.filter(c => c.id !== editingCompartment.id);
+  state.pages = state.pages.filter(p => p.cid !== editingCompartment.id);
+  state.sources = state.sources.filter(s => s.cid !== editingCompartment.id);
+  state.proposals = state.proposals.filter(p => p.cid !== editingCompartment.id);
+  if (state.activeCompartment === editingCompartment.id) state.activeCompartment = 'all';
+  $('#modalBg').classList.remove('open');
+  toast('Compartment deleted');
+  save(); render();
+};
+
+/* ============================================================
+   TOP TABS
+============================================================ */
+$$('.top-tab').forEach(t => t.onclick = () => {
+  state.activeTab = t.dataset.tab;
+  syncTopTabs();
+  render();
+});
+
+function renderCrumb(){
+  const c = state.activeCompartment==='all' ? 'All' : compartmentOf(state.activeCompartment)?.name || 'All';
+  const v = ({graph:'Graph',wiki:'Wiki',inbox:'Inbox',review:'Review Queue',research:'Research'})[state.activeTab];
+  $('#crumbCompartment').textContent = c;
+  $('#crumbView').textContent = v;
+}
+
+/* ============================================================
+   GRAPH (D3 force simulation, wikilinks, dynamic sizing)
+============================================================ */
+function buildGraphData(){
+  const visiblePages = state.activeCompartment==='all'
+    ? state.pages
+    : state.pages.filter(p=>p.cid===state.activeCompartment);
+
+  const idSet = new Set(visiblePages.map(p=>p.id));
+
+  // edges from explicit [[]], auto-mentions (strong), + tag-overlap (soft)
+  const edgeMap = new Map(); // key -> {source, target, cross, soft}
+  function addEdge(a, b, soft){
+    if (!idSet.has(a) || !idSet.has(b) || a === b) return;
+    const key = [a,b].sort().join('::');
+    if (edgeMap.has(key)) {
+      // upgrade soft -> strong if any addition is strong
+      const e = edgeMap.get(key);
+      if (e.soft && !soft) e.soft = false;
+      return;
+    }
+    const ap = state.pages.find(p=>p.id===a);
+    const bp = state.pages.find(p=>p.id===b);
+    edgeMap.set(key, {
+      source: a, target: b,
+      cross: ap && bp && ap.cid !== bp.cid,
+      soft: !!soft
+    });
+  }
+  visiblePages.forEach(p => {
+    explicitLinks(p).forEach(t => addEdge(p.id, t, false));
+    autoMentionLinks(p).forEach(t => addEdge(p.id, t, false));
+    tagOverlapLinks(p).forEach(t => addEdge(p.id, t, true));
+  });
+  const links = [...edgeMap.values()];
+
+  // dynamic sizing — degree-based, ratio 1:3
+  const degree = {};
+  visiblePages.forEach(p => degree[p.id] = 0);
+  links.forEach(l => {
+    degree[l.source] = (degree[l.source]||0) + 1;
+    degree[l.target] = (degree[l.target]||0) + 1;
+  });
+  const maxDeg = Math.max(1, ...Object.values(degree));
+  const R_MIN = 5, R_MAX = 15; // 1:3 ratio
+  const nodes = visiblePages.map(p => ({
+    id:p.id, label:p.title, type:p.type, cid:p.cid,
+    confidence:p.confidence,
+    degree:degree[p.id],
+    r: R_MIN + (degree[p.id] / maxDeg) * (R_MAX - R_MIN)
+  }));
+
+  return { nodes, links };
+}
+
+let sim, gZoom, pulseTimer, driftTimer;
+function clearGraphTimers(){
+  if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; }
+  if (driftTimer) { clearInterval(driftTimer); driftTimer = null; }
+  if (sim) { sim.stop(); sim = null; }
+}
+function renderGraph(){
+  clearGraphTimers();
+  const view = $('#view');
+  view.innerHTML = `
+    <div class="graph-wrap">
+      <div class="graph-grid"></div>
+      <div class="graph-overlay">
+        <h2>// SECOND BRAIN</h2>
+        <p>${state.activeCompartment==='all'
+          ? 'Every node from every compartment. Drag to rearrange. Scroll to zoom. Click to inspect.'
+          : `${escape(compartmentOf(state.activeCompartment)?.name)} — ${escape(compartmentOf(state.activeCompartment)?.desc||'')}`}</p>
+      </div>
+      <div class="graph-controls">
+        <button class="gctl" id="gZoomIn" title="Zoom in">+</button>
+        <button class="gctl" id="gZoomOut" title="Zoom out">−</button>
+        <button class="gctl" id="gRecenter" title="Recenter">◎</button>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="graph-stats">
+        <div class="stat"><b id="statN">0</b>nodes</div>
+        <div class="stat"><b id="statE">0</b>edges</div>
+        <div class="stat"><b id="statC">0</b>compartments</div>
+      </div>
+      <svg id="graph"></svg>
+    </div>
+  `;
+
+  const compsToShow = state.activeCompartment==='all' ? state.compartments : state.compartments.filter(c=>c.id===state.activeCompartment);
+  $('#legend').innerHTML = compsToShow.map(c =>
+    `<div class="legend-row"><span class="swatch" style="background:${compartmentColor(c.id)}"></span>${escape(c.name)}</div>`
+  ).join('');
+
+  const svg = d3.select('#graph');
+  const w = view.clientWidth;
+  const h = view.clientHeight;
+
+  const data = buildGraphData();
+  $('#statN').textContent = data.nodes.length;
+  $('#statE').textContent = data.links.length;
+  $('#statC').textContent = compsToShow.length;
+
+  svg.selectAll('*').remove();
+
+  const defs = svg.append('defs');
+  const glow = defs.append('filter').attr('id','glow').attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
+  glow.append('feGaussianBlur').attr('stdDeviation','3').attr('result','coloredBlur');
+
+  const g = svg.append('g');
+
+  gZoom = d3.zoom().scaleExtent([0.3, 4]).on('zoom', ev => g.attr('transform', ev.transform));
+  svg.call(gZoom);
+
+  const cidList = [...new Set(data.nodes.map(n=>n.cid))];
+  const centers = {};
+  cidList.forEach((cid, i) => {
+    const angle = (Math.PI*2*i)/Math.max(cidList.length,1) - Math.PI/2;
+    const radius = Math.min(w,h) * 0.22;
+    centers[cid] = { x: w/2 + Math.cos(angle)*radius, y: h/2 + Math.sin(angle)*radius };
+  });
+
+  function linkColor(d){ return d.cross ? '#CCFF00' : (d.soft ? 'rgba(204,255,0,.22)' : 'rgba(255,255,255,.22)'); }
+  function linkWidth(d){ return d.soft ? 0.6 : (d.cross ? 1.2 : 0.9); }
+  function linkDash(d){ return d.cross ? '4 4' : (d.soft ? '2 5' : null); }
+  function linkOpacity(d){ return d.soft ? 0.35 : 0.6; }
+
+  const link = g.append('g').attr('class','links').selectAll('line')
+    .data(data.links).enter().append('line')
+    .attr('stroke', linkColor)
+    .attr('stroke-width', linkWidth)
+    .attr('stroke-dasharray', linkDash)
+    .attr('opacity', linkOpacity);
+
+  const node = g.append('g').attr('class','nodes').selectAll('g')
+    .data(data.nodes).enter().append('g')
+    .attr('class','node-g')
+    .style('cursor','pointer');
+
+  node.append('circle')
+    .attr('class','halo')
+    .attr('r', d => d.r + 8)
+    .attr('fill','none')
+    .attr('stroke', d => compartmentColor(d.cid))
+    .attr('stroke-width', 1)
+    .attr('opacity', 0.2);
+
+  node.append('circle')
+    .attr('class','core')
+    .attr('r', d => d.r)
+    .attr('fill', d => compartmentColor(d.cid))
+    .attr('stroke', '#0a0a0a')
+    .attr('stroke-width', 2)
+    .attr('filter','url(#glow)');
+
+  node.append('text')
+    .attr('y', d => d.r + 16)
+    .attr('text-anchor','middle')
+    .attr('font-family','IBM Plex Mono, monospace')
+    .attr('font-size', d => Math.max(9, Math.min(11, 8 + d.degree*0.4)))
+    .attr('fill', '#a8a59c')
+    .attr('letter-spacing','0.04em')
+    .text(d => d.label.length > 22 ? d.label.slice(0,20)+'…' : d.label);
+
+  sim = d3.forceSimulation(data.nodes)
+    .alphaDecay(0.003)
+    .velocityDecay(0.72)
+    .force('link', d3.forceLink(data.links).id(d=>d.id).distance(d => d.cross ? 140 : 80).strength(0.35))
+    .force('charge', d3.forceManyBody().strength(-260))
+    .force('collide', d3.forceCollide().radius(d=>d.r+22))
+    .force('center', d3.forceCenter(w/2, h/2))
+    .force('cluster', alpha => {
+      if (state.activeCompartment !== 'all') return;
+      data.nodes.forEach(n => {
+        const c = centers[n.cid]; if (!c) return;
+        n.vx += (c.x - n.x) * 0.04 * alpha;
+        n.vy += (c.y - n.y) * 0.04 * alpha;
+      });
+    })
+    .force('flow', () => {
+      const t = performance.now() * 0.00018;
+      let avx = 0, avy = 0, count = 0;
+      data.nodes.forEach(d => { if (d.fx==null) { avx += d.vx; avy += d.vy; count++; } });
+      if (count) { avx /= count; avy /= count; }
+      data.nodes.forEach((d, i) => {
+        if (d.fx != null) return;
+        const phase = i * 0.42;
+        const fx = (Math.cos(t + phase) + 0.4 * Math.cos(t * 1.7 + phase * 2.1)) * 0.022;
+        const fy = (Math.sin(t * 1.2 + phase) + 0.4 * Math.sin(t * 0.8 + phase * 1.5)) * 0.022;
+        d.vx += fx;
+        d.vy += fy;
+        d.vx += (avx - d.vx) * 0.006;
+        d.vy += (avy - d.vy) * 0.006;
+      });
+    })
+    .on('tick', () => {
+      link
+        .attr('x1', d=>d.source.x).attr('y1', d=>d.source.y)
+        .attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+  sim.alphaTarget(0.025).restart();
+
+  const drag = d3.drag()
+    .on('start', (ev,d) => { if (!ev.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+    .on('drag',  (ev,d) => { d.fx=ev.x; d.fy=ev.y; })
+    .on('end',   (ev,d) => { if (!ev.active) sim.alphaTarget(0.025); d.fx=null; d.fy=null; });
+  node.call(drag);
+
+  const linkedById = {};
+  data.links.forEach(l => {
+    const a = typeof l.source==='object'?l.source.id:l.source;
+    const b = typeof l.target==='object'?l.target.id:l.target;
+    (linkedById[a] ??= new Set()).add(b);
+    (linkedById[b] ??= new Set()).add(a);
+  });
+  node.on('mouseenter', (ev,d) => {
+      node.style('opacity', n => (n.id===d.id || linkedById[d.id]?.has(n.id)) ? 1 : 0.18);
+      link.style('opacity', l => (l.source.id===d.id || l.target.id===d.id) ? 0.95 : 0.05);
+      link.style('stroke', l => (l.source.id===d.id || l.target.id===d.id) ? '#d97757' : linkColor(l));
+    })
+    .on('mouseleave', () => {
+      node.style('opacity', 1);
+      link.style('opacity', linkOpacity);
+      link.style('stroke', linkColor);
+    })
+    .on('click', (ev,d) => {
+      state.selectedPageId = d.id;
+      state.activeTab = 'wiki';
+      syncTopTabs();
+      render();
+    });
+
+  function firePulse(){
+    if (!data.nodes.length) return;
+    const n = data.nodes[Math.floor(Math.random() * data.nodes.length)];
+    const sel = node.filter(d => d.id === n.id);
+    const baseR = n.r;
+    const color = compartmentColor(n.cid);
+    sel.select('.halo').interrupt()
+      .transition().duration(260).ease(d3.easeQuadOut)
+      .attr('r', baseR + 28).attr('opacity', 0.55).attr('stroke-width', 1.4)
+      .transition().duration(900).ease(d3.easeQuadIn)
+      .attr('r', baseR + 8).attr('opacity', 0.2).attr('stroke-width', 1);
+    sel.select('.core').interrupt()
+      .transition().duration(180).ease(d3.easeQuadOut)
+      .attr('r', baseR + 1.8).attr('fill', '#CCFF00')
+      .transition().duration(700).ease(d3.easeQuadIn)
+      .attr('r', baseR).attr('fill', color);
+    const neighbors = data.links.filter(l =>
+      (l.source.id===n.id || l.target.id===n.id)
+    );
+    neighbors.forEach(l => {
+      const otherId = l.source.id === n.id ? l.target.id : l.source.id;
+      link.filter(x => (x.source.id===l.source.id && x.target.id===l.target.id))
+        .interrupt()
+        .transition().duration(220)
+        .attr('stroke', '#CCFF00').attr('opacity', 0.95).attr('stroke-width', 1.6)
+        .transition().duration(700)
+        .attr('stroke', linkColor(l))
+        .attr('opacity', linkOpacity(l)).attr('stroke-width', linkWidth(l));
+      setTimeout(() => {
+        const ns = node.filter(d => d.id === otherId);
+        const nd = data.nodes.find(d => d.id === otherId);
+        if (!nd) return;
+        ns.select('.core').interrupt()
+          .transition().duration(160).attr('r', nd.r + 0.8)
+          .transition().duration(500).attr('r', nd.r);
+      }, 240);
+    });
+  }
+  pulseTimer = setInterval(() => {
+    firePulse();
+    if (Math.random() < 0.35) setTimeout(firePulse, 320 + Math.random()*400);
+  }, 1400);
+
+  $('#gZoomIn').onclick  = () => svg.transition().duration(250).call(gZoom.scaleBy, 1.4);
+  $('#gZoomOut').onclick = () => svg.transition().duration(250).call(gZoom.scaleBy, 1/1.4);
+  $('#gRecenter').onclick= () => {
+    svg.transition().duration(400).call(gZoom.transform, d3.zoomIdentity);
+    sim.alpha(0.6).restart();
+  };
+}
+
+/* ============================================================
+   INBOX — Web Clipper (Jina Reader) + PDF.js
+============================================================ */
+let clipState = { stage:'idle', title:'', content:'', source:'', error:'', cidOverride:'' };
+
+function inferCompartment(text, url, title){
+  const blob = ((title||'')+' '+(url||'')+' '+(text||'')).toLowerCase();
+  const scores = state.compartments.map(c => {
+    let s = 0;
+    const haystack = (c.name + ' ' + c.desc).toLowerCase();
+    haystack.split(/[^a-z0-9]+/).filter(Boolean).forEach(w => { if (w.length>3 && blob.includes(w)) s += 2; });
+    if (c.id==='trading' && /(short|stock|13f|catalyst|borrow|small[- ]cap|ticker|trade|risk|filing|equity|sec)/.test(blob)) s += 4;
+    if (c.id==='design'  && /(typograph|brand|motion|logo|figma|color|kerning|grid|layout|ux|ui)/.test(blob)) s += 4;
+    if (c.id==='agents'  && /(llm|claude|gpt|agent|prompt|rag|embedding|token|mcp|cursor|hermes|ai|model)/.test(blob)) s += 4;
+    if (c.id==='fitness' && /(heart|hr|run|recovery|training|km|pace|2\.4|mile|zone|exercise)/.test(blob)) s += 4;
+    return { c, s };
+  }).sort((a,b)=>b.s-a.s);
+  if (scores[0].s === 0) return state.compartments[0];
+  return scores[0].c;
+}
+
+async function clipUrl(url){
+  // Jina Reader returns clean markdown with CORS enabled.
+  const target = url.startsWith('http') ? url : ('https://' + url);
+  const reader = 'https://r.jina.ai/' + target;
+  const res = await fetch(reader, { headers: { 'Accept': 'text/markdown, text/plain' } });
+  if (!res.ok) throw new Error(`Reader returned ${res.status}`);
+  const text = await res.text();
+  // Pull the title — Jina returns "Title: ..." at the top
+  let title = '';
+  const titleMatch = text.match(/^Title:\s*(.+)$/m);
+  if (titleMatch) title = titleMatch[1].trim();
+  // Strip Jina's metadata header if present
+  const cleaned = text
+    .replace(/^Title:.*$/m,'')
+    .replace(/^URL Source:.*$/m,'')
+    .replace(/^Markdown Content:\s*/m,'')
+    .trim();
+  return { title: title || target, content: cleaned, sourceUrl: target };
+}
+
+async function readPdf(file){
+  if (!window.pdfjsLib) throw new Error('PDF.js not loaded');
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const parts = [];
+  for (let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it => it.str).join(' ').replace(/\s+/g,' ').trim();
+    if (pageText) parts.push(`## Page ${i}\n\n${pageText}`);
+  }
+  return parts.join('\n\n');
+}
+
+async function readTextFile(file){
+  return await file.text();
+}
+
+function renderInbox(){
+  $('#view').innerHTML = `
+    <div class="inbox-wrap">
+      <div class="inbox-head">
+        <div class="micro">// Web Clipper · PDF Reader</div>
+        <h1>Drop anything. <b>AI clips, reads, routes.</b></h1>
+        <p>Paste a URL — the clipper fetches the page and extracts clean markdown. Drop a PDF — every page is OCR-read by PDF.js. Preview before saving. Compartment auto-detected; override anytime.</p>
+      </div>
+
+      <div class="inbox-card">
+        <div class="url-row">
+          <span class="prefix">URL</span>
+          <input id="urlInput" placeholder="https://… any article, blog, gist, or reader-friendly page" />
+          <button id="urlGo" disabled>Clip</button>
+        </div>
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">+</div>
+          <h3>Drop PDF, transcript, or text file</h3>
+          <p>Reads every page, extracts text, structures it as markdown.</p>
+          <div class="types">
+            <span>PDF</span><span>MD</span><span>TXT</span><span>VTT</span><span>SRT</span>
+          </div>
+          <input type="file" id="fileInput" hidden multiple accept=".pdf,.md,.txt,.vtt,.srt"/>
+        </div>
+        ${renderClipStatus()}
+      </div>
+
+      ${renderPreview()}
+
+      <div class="recents">
+        <div class="recents-head">
+          <h2>Recent sources</h2>
+          <span class="count">${state.sources.length} total</span>
+        </div>
+        ${state.sources.slice().reverse().map(s => {
+          const c = compartmentOf(s.cid);
+          return `<div class="source-row ${s.status}">
+            <span class="marker"></span>
+            <div class="title">${escape(s.title)}<small>${escape(s.summary||'')}</small></div>
+            <span class="compartment">${escape(c?.name||'—')}</span>
+            <span class="status">${escape(s.status)}</span>
+          </div>`;
+        }).join('') || '<p style="color:var(--ink-3);font-size:13px;padding:14px 0">No sources yet.</p>'}
+      </div>
+    </div>
+  `;
+
+  const urlInput = $('#urlInput');
+  const urlGo    = $('#urlGo');
+  urlInput.addEventListener('input', () => urlGo.disabled = !urlInput.value.trim());
+  urlGo.onclick = async () => {
+    const url = urlInput.value.trim();
+    if (!url) return;
+    clipState = { stage:'clipping', title:'', content:'', source:url, error:'', cidOverride:'' };
+    renderInbox();
+    try {
+      const out = await clipUrl(url);
+      clipState = { stage:'preview', title:out.title, content:out.content, source:out.sourceUrl, error:'', cidOverride:'' };
+      renderInbox();
+    } catch (err) {
+      clipState = { stage:'error', error:String(err.message||err), title:'', content:'', source:url, cidOverride:'' };
+      renderInbox();
+    }
+  };
+  urlInput.addEventListener('keydown', e => { if(e.key==='Enter' && !urlGo.disabled) urlGo.click(); });
+
+  const dz = $('#dropZone');
+  const fi = $('#fileInput');
+  dz.onclick = () => fi.click();
+  fi.onchange = () => handleFiles([...fi.files]);
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    handleFiles([...e.dataTransfer.files]);
+  });
+
+  // preview wiring
+  if (clipState.stage === 'preview') {
+    $('#prevTitle').oninput = e => clipState.title = e.target.value;
+    $('#prevContent').oninput = e => clipState.content = e.target.value;
+    $('#prevCid').onchange = e => clipState.cidOverride = e.target.value;
+    $('#prevDiscard').onclick = () => { clipState = { stage:'idle' }; renderInbox(); };
+    $('#prevSave').onclick = () => commitClip();
+  }
+}
+
+function renderClipStatus(){
+  if (clipState.stage === 'clipping') {
+    return `<div class="clip-progress">
+      <div class="glyph">↻</div>
+      <div class="text">Clipping ${escape(clipState.source)} via Jina Reader…</div>
+    </div>`;
+  }
+  if (clipState.stage === 'reading') {
+    return `<div class="clip-progress">
+      <div class="glyph">↻</div>
+      <div class="text">Reading PDF — ${escape(clipState.source)}…</div>
+    </div>`;
+  }
+  if (clipState.stage === 'error') {
+    return `<div class="clip-error">Clip failed: ${escape(clipState.error)}. Try a different URL or paste the text manually.</div>`;
+  }
+  return '';
+}
+
+function renderPreview(){
+  if (clipState.stage !== 'preview') return '';
+  const inferred = inferCompartment(clipState.content, clipState.source, clipState.title);
+  const cidUse = clipState.cidOverride || inferred.id;
+  const cName  = compartmentOf(cidUse)?.name || inferred.name;
+  const wordCount = clipState.content.split(/\s+/).filter(Boolean).length;
+  return `
+    <div class="preview">
+      <div class="preview-head">
+        <span class="micro">// Clipped · preview before save</span>
+        <span class="meta">${wordCount.toLocaleString()} words · ${escape(clipState.source||'local file')}</span>
+      </div>
+      <div class="preview-body">
+        <input id="prevTitle" class="title-input" value="${escape(clipState.title)}" />
+        <textarea id="prevContent" spellcheck="false">${escape(clipState.content)}</textarea>
+      </div>
+      <div class="preview-routing">
+        <div class="route-info">AI suggests routing → <b>${escape(cName)}</b></div>
+        <select id="prevCid">
+          ${state.compartments.map(c => `<option value="${c.id}" ${c.id===cidUse?'selected':''}>${escape(c.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="preview-actions">
+        <button class="btn" id="prevDiscard">Discard</button>
+        <button class="btn primary" id="prevSave">Save to vault</button>
+      </div>
+    </div>
+  `;
+}
+
+async function handleFiles(files){
+  for (const f of files){
+    const ext = (f.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'pdf') {
+      clipState = { stage:'reading', title:f.name, content:'', source:f.name, error:'', cidOverride:'' };
+      renderInbox();
+      try {
+        const text = await readPdf(f);
+        clipState = { stage:'preview', title:f.name.replace(/\.pdf$/i,''), content:text, source:f.name, error:'', cidOverride:'' };
+      } catch (err) {
+        clipState = { stage:'error', error:String(err.message||err), title:'', content:'', source:f.name, cidOverride:'' };
+      }
+      renderInbox();
+    } else if (['md','txt','vtt','srt'].includes(ext)) {
+      clipState = { stage:'reading', title:f.name, content:'', source:f.name, error:'', cidOverride:'' };
+      renderInbox();
+      try {
+        const text = await readTextFile(f);
+        clipState = { stage:'preview', title:f.name.replace(/\.[^.]+$/,''), content:text, source:f.name, error:'', cidOverride:'' };
+      } catch (err) {
+        clipState = { stage:'error', error:String(err.message||err), title:'', content:'', source:f.name, cidOverride:'' };
+      }
+      renderInbox();
+    } else {
+      toast(`Unsupported: ${f.name}`);
+    }
+  }
+}
+
+function commitClip(){
+  const title = clipState.title.trim() || 'Untitled clip';
+  const content = clipState.content.trim();
+  if (!content) { toast('Empty content — nothing to save'); return; }
+  const inferred = inferCompartment(content, clipState.source, title);
+  const cid = clipState.cidOverride || inferred.id;
+  const c = compartmentOf(cid);
+  const id = 's-'+Date.now()+'-'+Math.random().toString(36).slice(2,5);
+  state.sources.push({
+    id, cid,
+    type: clipState.source.startsWith('http') ? 'URL' : 'File',
+    title,
+    url: clipState.source.startsWith('http') ? clipState.source : '',
+    status: 'processed',
+    summary: content.slice(0, 200).replace(/\s+/g,' ') + (content.length>200?'…':'')
+  });
+  // create a structured-page proposal
+  const md = `# ${title}\n\n## Summary\n\n${content.slice(0,400).replace(/\s+/g,' ')}…\n\n## Source Notes\n\n${content.length>2000 ? content.slice(0,2000)+'\n\n…' : content}\n\n## Related Pages\n\n`;
+  state.proposals.unshift({
+    id:'p-'+Date.now(), cid, sid:id, type:'create_page',
+    title:`Create page from: ${title}`,
+    target:'',
+    confidence:'medium', status:'pending',
+    reasoning:`Source clipped from ${clipState.source.startsWith('http')?clipState.source:'a local file'} and routed to ${c.name}. Review before adding to the wiki.`,
+    content: md
+  });
+  toast(`Routed → ${c.name}`);
+  clipState = { stage:'idle' };
+  save();
+  renderInbox();
+}
+
+/* ============================================================
+   WIKI — inline edit + delete
+============================================================ */
+function renderMarkdown(md=''){
+  const e = escape(md);
+  return e
+    .replace(/^# (.*)$/gm,'<h1>$1</h1>')
+    .replace(/^## (.*)$/gm,'<h2>$1</h2>')
+    .replace(/\[\[(.*?)\]\]/g,'<a href="#" data-wikilink="$1">$1</a>')
+    .replace(/^- (.*)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*?<\/li>(?:\n|$))+/gs, m => '<ul>'+m+'</ul>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\n\n/g,'<br/><br/>');
+}
+
+/* Auto-link plain title mentions in rendered HTML.
+   Skips anything inside <a>, <code>, <pre>, <h1>, <h2>. Single-pass
+   regex sorted by title length so longer titles win at the same offset. */
+function autoLinkHtml(html, currentPageId){
+  const others = state.pages.filter(p => p.id !== currentPageId);
+  if (!others.length) return html;
+  const sorted = others.slice().sort((a,b) => b.title.length - a.title.length);
+  const titlePattern = sorted.map(p => escRe(p.title)).join('|');
+  if (!titlePattern) return html;
+  const wordRe = new RegExp(`\\b(${titlePattern})\\b`, 'gi');
+
+  // Tokenize: keep entire <a>…</a>, <code>…</code>, <pre>…</pre>, <h1>…</h1>, <h2>…</h2>
+  // intact; everything else gets scanned for title mentions. Tags themselves are kept.
+  const skipPattern = /(<a\b[^>]*>[\s\S]*?<\/a>|<code\b[^>]*>[\s\S]*?<\/code>|<pre\b[^>]*>[\s\S]*?<\/pre>|<h1\b[^>]*>[\s\S]*?<\/h1>|<h2\b[^>]*>[\s\S]*?<\/h2>|<[^>]+>)/g;
+  const parts = html.split(skipPattern);
+  return parts.map(part => {
+    if (!part) return '';
+    if (part[0] === '<') return part;
+    return part.replace(wordRe, (match) => {
+      const found = sorted.find(p => p.title.toLowerCase() === match.toLowerCase());
+      if (!found) return match;
+      return `<a href="#" data-wikilink="${escape(found.title)}" class="auto">${match}</a>`;
+    });
+  }).join('');
+}
+function renderWiki(){
+  let pages = pagesIn(state.activeCompartment);
+  if (state.activeTag) pages = pages.filter(p => (p.tags||[]).includes(state.activeTag));
+  if (!state.selectedPageId || !pages.find(p=>p.id===state.selectedPageId)) {
+    state.selectedPageId = pages[0]?.id || null;
+  }
+  const page = state.pages.find(p=>p.id===state.selectedPageId);
+  const c = page ? compartmentOf(page.cid) : null;
+  const sources = page ? page.sources.map(id=>state.sources.find(s=>s.id===id)).filter(Boolean) : [];
+  const linkedIds = page ? pageWikilinks(page) : [];
+  const related = linkedIds.map(id => state.pages.find(p=>p.id===id)).filter(Boolean);
+  const editing = page && state.editingPageId === page.id;
+
+  const tagsHtml = page ? `
+    <div class="page-tags">
+      ${(page.tags||[]).map(t => `
+        <span class="tag-chip ${state.activeTag===t?'active':''}" data-tag="${escape(t)}">
+          ${escape(t)}${editing?`<span class="x" data-rmtag="${escape(t)}">×</span>`:''}
+        </span>
+      `).join('')}
+      ${editing ? `
+        <span class="tag-add">
+          <span>+</span>
+          <input id="tagAdd" placeholder="add tag" />
+        </span>
+      ` : `
+        <span class="tag-add" id="tagAddInert" style="opacity:.55">
+          <span>+</span><span style="font-size:10px">tag (edit mode)</span>
+        </span>
+      `}
+    </div>
+  ` : '';
+
+  $('#view').innerHTML = `
+    <div class="wiki-wrap">
+      <div class="page-list">
+        <div class="page-list-head">
+          <h3>Pages${state.activeTag?` · #${escape(state.activeTag)}`:''}</h3>
+          <button class="new" id="newPage">+ new</button>
+        </div>
+        ${state.activeTag ? `
+          <div class="tag-filter-banner">
+            <span>filtered: #${escape(state.activeTag)}</span>
+            <button id="clearTag">clear</button>
+          </div>` : ''}
+        ${pages.map(p => `
+          <button class="page-item ${p.id===state.selectedPageId?'active':''}" data-page="${p.id}">
+            ${escape(p.title)}
+            <span class="meta">${escape(p.type)} · ${escape(p.confidence)}${(p.tags||[]).length?` · ${(p.tags||[]).slice(0,2).map(t=>'#'+escape(t)).join(' ')}`:''}</span>
+          </button>
+        `).join('') || '<p style="color:var(--ink-3);font-size:12px;padding:14px 18px">No pages.</p>'}
+      </div>
+
+      <div class="page-content">
+        ${page ? `
+          <div class="page-header">
+            <div class="micro">${escape(c?.name||'—')} · ${escape(page.type)}</div>
+            ${editing
+              ? `<input id="titleEdit" class="title-edit" value="${escape(page.title)}" />`
+              : `<h1>${escape(page.title)}</h1>`}
+            ${tagsHtml}
+            <div class="page-meta mono">
+              <span>confidence<b>${escape(page.confidence)}</b></span>
+              <span>sources<b>${sources.length}</b></span>
+              <span>links<b>${related.length}</b></span>
+            </div>
+            <div class="page-actions">
+              ${editing
+                ? `<button class="btn primary" id="saveEdit">Save</button>
+                   <button class="btn" id="cancelEdit">Cancel</button>`
+                : `<button class="btn" id="editPage">Edit</button>
+                   <button class="btn lime" id="aiSuggest">AI Suggest</button>
+                   <button class="btn danger" id="deletePage">Delete</button>`}
+            </div>
+          </div>
+
+          ${editing
+            ? `<div class="md-editor">
+                 <textarea id="mdEdit" spellcheck="false">${escape(page.md)}</textarea>
+                 <div class="hint">Use <b>[[Page Title]]</b> for explicit links. Plain title mentions are <b>auto-linked</b> at render. Tags create soft graph edges between related pages.</div>
+               </div>`
+            : `<div class="markdown" id="md">${autoLinkHtml(renderMarkdown(page.md), page.id)}</div>`}
+
+          ${!editing ? `
+          <div class="ctx-drawer ${state.ctxOpen?'open':''}" id="ctxDrawer">
+            <button class="ctx-toggle" id="ctxToggle">
+              <span>// Context · sources, links, AI tips</span>
+              <span class="arrow"></span>
+            </button>
+            <div class="ctx-body">
+              <div class="ctx-grid">
+                <div class="ctx-cell">
+                  <h4>Sources</h4>
+                  ${sources.map(s=>`<div class="ctx-item">${escape(s.title)}<small>${escape(s.type)} · ${escape(s.status)}</small></div>`).join('') || '<p style="color:var(--ink-4);font-size:12px">no source linked</p>'}
+                </div>
+                <div class="ctx-cell">
+                  <h4>Related</h4>
+                  ${related.map(r=>`<div class="ctx-item" data-go="${r.id}">${escape(r.title)}<small>${escape(r.type)}</small></div>`).join('') || '<p style="color:var(--ink-4);font-size:12px">no [[wikilinks]] yet</p>'}
+                </div>
+                <div class="ctx-cell">
+                  <h4>AI</h4>
+                  <div class="ai-tip">Add Claims and Open Questions to make this page auditable.</div>
+                </div>
+              </div>
+            </div>
+          </div>` : ''}
+        ` : `<div class="empty" style="margin:60px 48px"><div class="glyph">∅</div><h3>No page selected</h3><p>Pick a page from the list, or create one.</p></div>`}
+      </div>
+    </div>
+  `;
+
+  $$('.page-item').forEach(b => b.onclick = () => {
+    state.editingPageId = null;
+    state.selectedPageId = b.dataset.page;
+    render();
+  });
+
+  // tag interactions
+  $$('.tag-chip').forEach(chip => {
+    chip.onclick = (e) => {
+      // ignore × clicks
+      if (e.target.classList.contains('x')) return;
+      const t = chip.dataset.tag;
+      state.activeTag = (state.activeTag === t) ? null : t;
+      render();
+    };
+  });
+  $$('[data-rmtag]').forEach(x => x.onclick = (e) => {
+    e.stopPropagation();
+    if (!editing) return;
+    const t = x.dataset.rmtag;
+    page.tags = (page.tags||[]).filter(tg => tg !== t);
+    save(); render();
+  });
+  if (editing) {
+    const ta = $('#tagAdd');
+    ta?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const v = ta.value.trim().toLowerCase().replace(/^#/,'').replace(/\s+/g,'-');
+        if (v && !(page.tags||[]).includes(v)) {
+          page.tags = [...(page.tags||[]), v];
+          save();
+        }
+        ta.value = '';
+        render();
+        setTimeout(()=>$('#tagAdd')?.focus(), 0);
+      }
+    });
+  }
+  $('#clearTag')?.addEventListener('click', () => { state.activeTag = null; render(); });
+  $('#newPage')?.addEventListener('click', () => {
+    const title = prompt('Page title');
+    if (!title) return;
+    const id = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')+'-'+Date.now().toString().slice(-3);
+    const cid = state.activeCompartment==='all' ? state.compartments[0]?.id : state.activeCompartment;
+    state.pages.push({ id, cid, title, type:'note', confidence:'draft', sources:[], tags:[], md:`# ${title}\n\n## Summary\n\n` });
+    state.selectedPageId = id;
+    state.editingPageId = id;
+    save(); render();
+  });
+  $('#editPage')?.addEventListener('click', () => {
+    state.editingPageId = page.id;
+    render();
+  });
+  $('#saveEdit')?.addEventListener('click', () => {
+    const newTitle = $('#titleEdit').value.trim();
+    const newMd    = $('#mdEdit').value;
+    if (newTitle) page.title = newTitle;
+    page.md = newMd;
+    state.editingPageId = null;
+    save(); render();
+    toast('Saved');
+  });
+  $('#cancelEdit')?.addEventListener('click', () => {
+    state.editingPageId = null;
+    render();
+  });
+  $('#deletePage')?.addEventListener('click', () => {
+    if (!confirm(`Delete "${page.title}"? This cannot be undone.`)) return;
+    state.pages = state.pages.filter(p => p.id !== page.id);
+    state.selectedPageId = pagesIn(state.activeCompartment)[0]?.id || null;
+    save(); render();
+    toast('Page deleted');
+  });
+  $('#aiSuggest')?.addEventListener('click', () => {
+    state.proposals.unshift({
+      id:'p-'+Date.now(), cid:page.cid, sid:page.sources[0]||'', type:'update_page',
+      title:`Strengthen page: ${page.title}`, target:page.id,
+      confidence:'medium', status:'pending',
+      reasoning:'AI librarian suggests adding clearer claims, related pages, and open questions.',
+      content:`Add sections: Claims, Open Questions, Source Notes.`
+    });
+    state.activeTab='review';
+    syncTopTabs();
+    save(); render();
+  });
+  $('#ctxToggle')?.addEventListener('click', () => {
+    state.ctxOpen = !state.ctxOpen;
+    $('#ctxDrawer').classList.toggle('open', state.ctxOpen);
+    save();
+  });
+  function navigateToPage(p){
+    state.editingPageId = null;
+    state.selectedPageId = p.id;
+    if (state.activeCompartment !== 'all' && p.cid !== state.activeCompartment) {
+      state.activeCompartment = p.cid;
+    }
+    state.activeTag = null;
+    render();
+  }
+  $$('[data-go]').forEach(b => b.onclick = () => {
+    const p = state.pages.find(x => x.id === b.dataset.go);
+    if (p) navigateToPage(p);
+  });
+  $$('[data-wikilink]').forEach(a => a.onclick = e => {
+    e.preventDefault();
+    const tgt = a.dataset.wikilink.toLowerCase();
+    const found = state.pages.find(p => p.title.toLowerCase()===tgt);
+    if (found) navigateToPage(found);
+    else toast(`No page: ${a.dataset.wikilink}`);
+  });
+}
+
+/* ============================================================
+   REVIEW
+============================================================ */
+function renderReview(){
+  const pending = propsIn(state.activeCompartment);
+  $('#view').innerHTML = `
+    <div class="review-wrap">
+      <div class="review-head">
+        <div>
+          <span class="micro">// Review Queue</span>
+          <h1>${pending.length} <b>pending</b></h1>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="approveAll">Approve high-conf</button>
+        </div>
+      </div>
+      ${pending.length ? pending.map(p => {
+        const src = state.sources.find(s=>s.id===p.sid);
+        const c = compartmentOf(p.cid);
+        return `<div class="prop">
+          <div class="prop-head">
+            <div style="min-width:0;flex:1">
+              <div class="prop-tags">
+                <span class="tag">${escape(p.type)}</span>
+                <span class="tag ${p.confidence}">${escape(p.confidence)}</span>
+                <span class="tag">${escape(c?.name||'')}</span>
+              </div>
+              <h3>${escape(p.title)}</h3>
+              <p class="reasoning">${escape(p.reasoning)}</p>
+              ${src?`<p class="source-ref">↳ ${escape(src.title)}</p>`:''}
+            </div>
+            <div class="prop-actions">
+              <button class="btn" data-edit="${p.id}">Edit</button>
+              <button class="btn danger" data-reject="${p.id}">Reject</button>
+              <button class="btn primary" data-approve="${p.id}">Approve</button>
+            </div>
+          </div>
+          <pre>${escape(p.content)}</pre>
+        </div>`;
+      }).join('') : `
+        <div class="empty">
+          <div class="glyph">✓</div>
+          <h3>Queue clean</h3>
+          <p>New AI-generated wiki changes appear here before entering the vault.</p>
+        </div>`}
+    </div>
+  `;
+  $$('[data-approve]').forEach(b => b.onclick = () => approveProposal(b.dataset.approve));
+  $$('[data-reject]').forEach(b => b.onclick = () => rejectProposal(b.dataset.reject));
+  $$('[data-edit]').forEach(b => b.onclick = () => {
+    const p = state.proposals.find(x=>x.id===b.dataset.edit);
+    const u = prompt('Edit proposal content', p.content);
+    if (u!==null) { p.content = u; save(); render(); }
+  });
+  $('#approveAll').onclick = () => {
+    propsIn(state.activeCompartment).filter(p=>p.confidence==='high').forEach(p => approveProposal(p.id, false));
+    save(); render();
+    toast('High-confidence proposals approved');
+  };
+}
+function approveProposal(id, doRender=true){
+  const p = state.proposals.find(x=>x.id===id);
+  if (!p) return;
+  p.status = 'approved';
+  if (p.type === 'create_page') {
+    const title = p.title.replace(/^Create page from:\s*/i,'').replace(/^Create page:\s*/i,'');
+    const newId = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')+'-'+Date.now().toString().slice(-3);
+    state.pages.push({ id:newId, cid:p.cid, title, type:'source-note', confidence:p.confidence, sources:p.sid?[p.sid]:[], tags:[], md:p.content });
+  } else if (p.target) {
+    const page = state.pages.find(x=>x.id===p.target);
+    if (page) page.md += `\n\n## AI Approved\n\n${p.content}\n`;
+  }
+  if (doRender) { save(); render(); toast('Approved'); }
+}
+function rejectProposal(id){
+  const p = state.proposals.find(x=>x.id===id);
+  if (p) { p.status='rejected'; save(); render(); toast('Rejected'); }
+}
+
+/* ============================================================
+   RESEARCH
+============================================================ */
+function renderResearch(){
+  const missions = state.missions.filter(m => state.activeCompartment==='all' || m.cid===state.activeCompartment);
+  $('#view').innerHTML = `
+    <div class="research-wrap">
+      <div class="review-head">
+        <div>
+          <span class="micro">// Research Missions</span>
+          <h1>Autoresearch — <b>review-gated</b></h1>
+        </div>
+        <button class="btn primary" id="newMission">+ New mission</button>
+      </div>
+      <div class="mission-grid">
+        ${missions.map(m => `
+          <div class="mission">
+            <h3>${escape(m.title)}</h3>
+            <span class="status">${escape(m.status)} · ${escape(compartmentOf(m.cid)?.name||'—')}</span>
+            <ol>${m.steps.map(s=>`<li>${escape(s)}</li>`).join('')}</ol>
+            <div class="run"><button class="btn lime" data-run="${m.id}">Mock run → proposals</button></div>
+          </div>
+        `).join('') || '<p style="color:var(--ink-3);font-size:13px">No missions yet.</p>'}
+      </div>
+    </div>
+  `;
+  $$('[data-run]').forEach(b => b.onclick = () => {
+    const m = state.missions.find(x=>x.id===b.dataset.run);
+    state.proposals.unshift({
+      id:'p-'+Date.now(), cid:m.cid, sid:'', type:'research_synthesis',
+      title:`Synthesis: ${m.title}`, target:'',
+      confidence:'medium', status:'pending',
+      reasoning:'Mock mission produced a synthesis proposal.',
+      content:`# ${m.title}\n\n## Synthesis\n\nWould summarize collected sources here.\n\n## Next Questions\n\n- What source is missing?\n- Which claim needs evidence?`
+    });
+    state.activeTab='review';
+    syncTopTabs();
+    save(); render();
+  });
+  $('#newMission').onclick = () => {
+    const t = prompt('Mission title'); if (!t) return;
+    const cid = state.activeCompartment==='all' ? state.compartments[0].id : state.activeCompartment;
+    state.missions.unshift({ id:'m-'+Date.now(), cid, title:t, status:'draft', steps:['Collect sources','Ingest sources','Generate synthesis','Create proposals'] });
+    save(); render();
+  };
+}
+
+/* ============================================================
+   SEARCH
+============================================================ */
+$('#search').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) return;
+    const hit = state.pages.find(p => p.title.toLowerCase().includes(q) || p.md.toLowerCase().includes(q));
+    if (hit) {
+      state.activeCompartment = hit.cid;
+      state.selectedPageId = hit.id;
+      state.activeTab = 'wiki';
+      state.editingPageId = null;
+      syncTopTabs();
+      e.target.value = '';
+      render();
+    } else toast('No match');
+  }
+});
+window.addEventListener('keydown', e => {
+  if ((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k') { e.preventDefault(); $('#search').focus(); }
+});
+
+/* ============================================================
+   RENDER ROOT
+============================================================ */
+function render(){
+  if (state.activeTab !== 'graph') clearGraphTimers();
+  renderRail();
+  renderCrumb();
+  if (state.activeTab==='graph')    renderGraph();
+  if (state.activeTab==='wiki')     renderWiki();
+  if (state.activeTab==='inbox')    renderInbox();
+  if (state.activeTab==='review')   renderReview();
+  if (state.activeTab==='research') renderResearch();
+  save();
+}
+window.addEventListener('resize', () => { if (state.activeTab==='graph') renderGraph(); });
+render();
+</script>
+</body>
+</html>
