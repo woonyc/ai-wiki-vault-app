@@ -1215,7 +1215,12 @@ const GitHubInboxAdapter = {
 
 /* ----- SharedInbox: the seam ----- */
 const SharedInbox = {
-  init(){ LocalInboxCache.load(); },
+  init(){
+    LocalInboxCache.load();
+    if (GitHubInboxAdapter.configured() && LocalInboxCache.data?.pending_push?.length){
+      this.flushPendingPush().catch(e => console.warn('pending inbox push retry failed:', e.message));
+    }
+  },
 
   status(){
     const cache = LocalInboxCache.data || LocalInboxCache.load();
@@ -4314,9 +4319,14 @@ function boot(){
   $('#opInboxRefresh').onclick = async () => {
     if (!GitHubInboxAdapter.configured()){ toast('Configure GitHub in ⚙ Settings to share captures'); return; }
     toast('Refreshing shared inbox…');
+    const pushed = await SharedInbox.flushPendingPush();
     const r = await SharedInbox.refresh();
     if (r.error) toast('Inbox refresh failed: ' + r.error.slice(0,100));
-    else toast(`Inbox: ${r.added > 0 ? `+${r.added} new · ` : ''}${r.removed > 0 ? `-${r.removed} moved · ` : ''}${r.total} total`);
+    else {
+      const pushedMsg = pushed.pushed > 0 ? `↑${pushed.pushed} pushed · ` : '';
+      const failedMsg = pushed.failed > 0 ? `↑${pushed.failed} still pending · ` : '';
+      toast(`Inbox: ${pushedMsg}${failedMsg}${r.added > 0 ? `+${r.added} new · ` : ''}${r.removed > 0 ? `-${r.removed} moved · ` : ''}${r.total} total`);
+    }
     if (Vault.state.ui.activeView === 'inbox') render();
   };
   $('#opIngest').onclick = openIngestModal;
