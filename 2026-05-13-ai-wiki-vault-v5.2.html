@@ -1267,6 +1267,7 @@ const SharedInbox = {
     }
 
     LocalInboxCache.enqueuePush(captureId);
+    toast('Captured — upload queued for Shared Inbox');
     // Fire-and-forget push; UI updates on completion via re-render
     this._pushItem(captureId).catch(e => console.warn('capture push deferred:', e.message));
     return item;
@@ -1275,27 +1276,58 @@ const SharedInbox = {
   async _pushItem(captureId){
     const cache = LocalInboxCache.data;
     const item = cache.items[captureId];
-    if (!item) return;
-    const { _folder, local_status, sha, ...payload } = item;
+    if (!item) return { ok:false, error:'missing local capture' };
+    const { _folder, local_status, sha, _push_error, _push_attempted_at, ...payload } = item;
     try {
       const r = await GitHubInboxAdapter.putFile('captured', captureId, payload);
       if (r.ok){
-        LocalInboxCache.upsert(item, { _folder:'captured', local_status:'pushed', sha: r.sha });
+        LocalInboxCache.upsert(item, {
+          _folder:'captured',
+          local_status:'pushed',
+          sha: r.sha,
+          _push_error: null,
+          _push_attempted_at: now()
+        });
         LocalInboxCache.dequeuePush(captureId);
         if (typeof render === 'function' && Vault.state?.ui?.activeView === 'inbox') render();
+        return { ok:true, sha:r.sha };
       }
+      const msg = r?.conflict ? 'GitHub reported a file conflict while pushing capture' : 'GitHub did not accept the inbox upload';
+      LocalInboxCache.upsert(item, {
+        _folder:'captured',
+        local_status:'pending_push',
+        sha: null,
+        _push_error: msg,
+        _push_attempted_at: now()
+      });
+      return { ok:false, error: msg };
     } catch(e){
       console.warn('push failed for', captureId, e.message);
+      LocalInboxCache.upsert(item, {
+        _folder:'captured',
+        local_status:'pending_push',
+        sha: null,
+        _push_error: e.message,
+        _push_attempted_at: now()
+      });
+      toast(`Shared Inbox upload pending — ${String(e.message || 'push failed').slice(0,80)}`);
+      return { ok:false, error: e.message || 'push failed' };
     }
   },
 
   async flushPendingPush(){
     const cache = LocalInboxCache.data;
     let pushed = 0, failed = 0;
+    const errors = [];
     for (const id of [...cache.pending_push]){
-      try { await this._pushItem(id); pushed++; } catch(_){ failed++; }
+      const result = await this._pushItem(id);
+      if (result?.ok) pushed++;
+      else {
+        failed++;
+        if (result?.error && errors.length < 3) errors.push(result.error);
+      }
     }
-    return { pushed, failed };
+    return { pushed, failed, errors };
   },
 
   /* Manual refresh — list captured + claimed, diff against cache, surface deltas. */
@@ -4325,7 +4357,8 @@ function boot(){
     else {
       const pushedMsg = pushed.pushed > 0 ? `↑${pushed.pushed} pushed · ` : '';
       const failedMsg = pushed.failed > 0 ? `↑${pushed.failed} still pending · ` : '';
-      toast(`Inbox: ${pushedMsg}${failedMsg}${r.added > 0 ? `+${r.added} new · ` : ''}${r.removed > 0 ? `-${r.removed} moved · ` : ''}${r.total} total`);
+      const errorMsg = pushed.errors?.length ? ` · ${pushed.errors[0].slice(0,70)}` : '';
+      toast(`Inbox: ${pushedMsg}${failedMsg}${r.added > 0 ? `+${r.added} new · ` : ''}${r.removed > 0 ? `-${r.removed} moved · ` : ''}${r.total} total${errorMsg}`);
     }
     if (Vault.state.ui.activeView === 'inbox') render();
   };
