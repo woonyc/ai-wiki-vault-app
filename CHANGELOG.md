@@ -9,10 +9,163 @@ Personal Karpathy-method second brain. Single-file HTML app. No backend (yet).
 | `ai-wiki-vault-prototype.html` | v1 — purple Obsidian theme, SVG graph |
 | `2026-04-26-ai-wiki-vault-v2.html` | v2 — iterated design |
 | `2026-04-27-ai-wiki-vault-v3.html` | v3 — IBM Plex + D3 graph + rust/lime palette. Compartment silos, review queue, research missions. **Deprecated** — design reference for graph polish only. |
-| `2026-04-30-ai-wiki-vault-v4.html` | **Current.** Karpathy method, flat vault, type folders, multi-provider LLM. |
+| `2026-04-30-ai-wiki-vault-v4.html` | v4 — Karpathy method, flat vault, type folders, multi-provider LLM, GitHub sync. Reference until v5 stabilizes. |
+| `2026-05-11-ai-wiki-vault-v5.html` | v5 — atoms/contexts layers + Obsidian graph panel + review-state. Reference until v5.1 stabilizes. |
+| `2026-05-12-ai-wiki-vault-v5.1.html` | **Current.** v5 + Workflow Rework: Temp Inbox · Prepare · Review Gate · transactional Commit with backup · manual GitHub sync gate. |
 | `AI_Wiki_Vault_Product_Spec.md` | Original spec (pre-Karpathy pivot). Many decisions superseded. |
+| `AI_First_Second_Brain_Hybrid_Claude_Brief_2026-05-07.md` | Hybrid architecture brief — Karpathy intake + Openclaw synthesis + atoms + contexts. Partial implementation in v5; pilot extraction deferred. |
+| `AI_Wiki_Vault_Workflow_Rework_Claude_Instructions_2026-05-07.md` | Workflow rework brief — Temp Inbox / Prepare / Drafts / Review Gate / Local Commit / Manual Sync. Deferred to v5.1. |
 | `CLAUDE.md` | Repo guide for Claude Code. |
 | `CHANGELOG.md` | This file. |
+
+---
+
+## v5.1 (2026-05-12) — Workflow Rework: Temp Inbox + Review Gate
+
+Source brief: `AI_Wiki_Vault_Workflow_Rework_Claude_Instructions_2026-05-07.md`.
+
+### Mental model shift
+v4: `capture → ingest → sync` (one button mutates vault + auto-pushes).
+v5.1: `capture → normalize → draft → review gate → commit local → sync remote` (each step reversible; remote sync is a manual button with a pre-flight gate).
+
+### Schema bump (2 → 3)
+- `state.tempItems[]` — captured raw input (Brief §Step 1).
+- `state.ingestDrafts[]` — normalized draft packets awaiting review (Brief §Step 3).
+- `state.ingestLog[]` — append-only state-transition log per draft.
+- `state.backups[]` — pre-commit snapshots (`pages`, `sources`, `contextPacks`); cap last 5.
+- `state.sync = { last_synced_remote_sha, last_synced_at, sync_status }` — explicit sync metadata.
+- `state.revision` — bumped on every commit (so a future device knows about local-only changes).
+- `state.device_id` — random per browser (Brief §Required vault metadata additions).
+- LocalStorage keys still `vault-v4-*` — v5.1 reads v4 user data and migrates in place.
+
+### New module: `IngestPipeline`
+Replaces v4's single-shot ingest path with a staged state machine. Public API:
+
+| Method | Brief step | What |
+|--------|-----------|------|
+| `capture(rawInput, opts)` | §Step 1 | Push to Temp Inbox. Stores raw + hash + timestamp. No LLM, no vault write. |
+| `normalize(tempItemId)` | §Step 2 | Deterministic. Splits multi-URL paste. `canonicalizeUrl` strips utm/fbclid/etc. Detects clip vs source. Runs `detectFinance()` to set `review_required` + `specialist:'finance-trading'`. Creates one `IngestDraft` per normalized item. |
+| `prepare(draftId)` | §Step 3 | Marks `needs_review`. (LLM enrichment hook for v5.2.) |
+| `commit(draftId, action)` | §Step 4-5 | Pre-flight backup snapshot. Two paths: `'commit'` runs full Karpathy ingest (source page + concept stubs + person stubs + auto-links). `'dated_source_only'` writes a single dated page with no extraction (Brief §6 finance default). Bumps revision, marks `sync_status='pending'`. |
+| `archiveDraft(id)` / `discardDraft(id)` | §Step 4 | Soft delete with state log. |
+
+### Auto-sync killed
+`Vault.persist()` previously called `GitHubSync.schedulePush()` on every state change. v5.1 gates this on `Settings.data.autoSync === true` (default false). Manual ↻ Sync button is the only push path. Per Brief §1: "do not auto-sync after every ingest".
+
+### Manual sync gate
+↻ Sync button now:
+- Warns if drafts in `draft_ready` / `needs_review` (won't push, but flags they exist).
+- On success: writes `state.sync.last_synced_at` + `last_synced_remote_sha` + `sync_status='synced'`.
+- On failure: `sync_status='failed'` (state stays committed locally — Brief §Step 6).
+
+### Finance quarantine wired (Brief §6)
+`detectFinance()` (added in v5) now invoked at normalize time. Hits set:
+- `draft.review_required = true` (UI: pulsing red REVIEW REQUIRED pill)
+- `draft.specialist = 'finance-trading'` (green pill)
+- `draft.suggested_action = 'dated_source_only'` (won't auto-promote to durable concepts)
+- `draft.reasons_review_required = [...]` shown in the review card warning box
+
+`TICKER_RE` extracts `$AAPL` style tickers and stores them on the draft.
+
+### New views (added to `Views` registry)
+- `inbox` — Temp Inbox cards. Bulk "Prepare all". Stale warnings at >10 (orange) / >25 (red).
+- `review` — Draft cards with all Brief §Step 4 fields: title, source URL/domain, type, category, summary, tickers, warnings, review_required + reasons, provenance snippet, edit-in-place title.
+- `ingestlog` — Append-only state transitions per draft.
+- `backups` — List of last 5 snapshots with restore action.
+
+### Tree chrome (left sidebar)
+New top-level **Workflow** section with `⊞ Temp Inbox`, `↯ Review`, `⌚ Ingest log`, `⎙ Backups`. Inbox + Review show pending counts (rust at >0, red if any `review_required`). "SYNC PENDING" label appears next to section header when local commits await push.
+
+### Topbar
+- `⊕ CAPTURE` (primary) — opens Capture modal → Temp Inbox.
+- `⊕ Direct` — kept as escape hatch to v4 single-shot ingest modal (Cmd-I).
+- ↻ Sync, ⚙ Settings unchanged in placement, gate-aware behavior.
+
+### Backward compat
+- v5 graph aesthetic, atoms/contexts types, review_state pills — all preserved.
+- v5 `getGraphCfg`, `Settings.save` flow — preserved.
+- v4/v5 vault.json structure — readable. New fields are added on migration; old fields untouched.
+
+### What is NOT in v5.1 (deferred to v5.2)
+- LLM-driven atom extraction (claim/fact/decision pages) — IngestPipeline.commit still uses v4-shaped output (source page + concept/person stubs).
+- Context-pack generation per specialist (overview / active-beliefs / open-questions / etc).
+- Two-layer Kimi worker + reviewer agent routing (Brief §Model routing).
+- Typed relationships (`derived_from`, `supports`, `contradicts`, etc).
+- Promote / deprecate / mark-reviewed UI for review_state lifecycle.
+- File-native markdown export (still single vault.json blob).
+
+---
+
+## v5 (2026-05-11) — Atoms + Contexts + Obsidian graph aesthetic
+
+Source briefs:
+- `AI_First_Second_Brain_Hybrid_Claude_Brief_2026-05-07.md`
+- `AI_Wiki_Vault_Workflow_Rework_Claude_Instructions_2026-05-07.md`
+
+### Vision lock
+Karpathy intake stays as the front door. The vault now models four layers (Brief §5): raw → maintained → atoms (derived retrieval substrate) → contexts (generated specialist agent memory). v5 adds the type system, review-state, and graph affordances. Workflow rework (Temp Inbox / Prepare / Review Gate / Local Commit) is split into v5.1 to keep the diff auditable.
+
+### Schema bump (1 → 2)
+- `Page.review_state` field — `raw | extracted | reviewed | promoted | deprecated` (Brief §9). Backfilled per layer at migration time.
+- Optional `Page.specialist` (`ai-research | finance-trading | hermes-ops | business-product | personal`).
+- Optional `Page.confidence` (`low | medium | high`) and `Page.review_required` (boolean).
+- `state.contextPacks` — generated specialist memory blobs (Brief §10). Empty by default.
+- LocalStorage keys (`vault-v4`, `vault-v4-settings`, `vault-v4-github`) **kept unchanged** so v5 reads existing v4 data without migration friction.
+
+### `PAGE_TYPES` extension (Brief §3.1, §7)
+Added eight types in two new layers:
+
+| Type | Layer | Folder | Glyph |
+|------|-------|--------|-------|
+| `claim` | atoms | `atoms/claims` | ❝ |
+| `fact` | atoms | `atoms/facts` | ✓ |
+| `decision` | atoms | `atoms/decisions` | ⊞ |
+| `hypothesis` | atoms | `atoms/hypotheses` | ? |
+| `question` | atoms | `atoms/questions` | ¿ |
+| `playbook` | atoms | `atoms/playbooks` | ▷ |
+| `entity` | atoms | `atoms/entities` | ◉ |
+| `context-pack` | contexts | `contexts` | ▣ |
+
+Each type carries `layer: 'wiki' | 'atoms' | 'contexts' | 'raw' | 'meta'`. Tree, anchor index, and graph all order by `PAGE_TYPES[*].order` so atoms cluster after wiki and contexts after atoms.
+
+### Finance quarantine helpers (Workflow Brief §6)
+- `FINANCE_KEYWORDS` array + `TICKER_RE`.
+- `detectFinance(text)` returns `{ isFinance, hits, tickers }`. Used by future Prepare step to set `review_required = true` automatically. Plumbed into the Page factory via `review_required` argument; UI surface = pulsing red pill in page meta.
+
+### Graph view rewrite — Obsidian aesthetic
+Reference: Obsidian forum thread on multiple-graph-view filters and color groups. Animation behavior preserved (murmuration `flow` force, neuron pulse every ~1.4s, hub lime ring, type clustering, hover isolation, drag, zoom).
+
+Replaced the bottom-right legend with a 5-section collapsible panel pinned top-left:
+
+| Section | Controls |
+|---------|----------|
+| **Groups** | Per-query color overrides. Query syntax: `tag:x` · `type:x` · `layer:x` · `path:x` · `status:x` · `review:x` · or bare regex on title. Color picker per row. |
+| **Filters** | Toggle wiki / atoms / contexts / raw / drafts / orphans. Tag substring filter. Filters mutate the node set, not just visibility (so simulation also gets faster). |
+| **Colors** | Background / link / link-hover / label / hub. Defaults: pure black bg, rust-brown link `#6b3a2a`, rust hover. |
+| **Display** | Toggle labels, node scale, link opacity, label-min-degree threshold. |
+| **Forces** | Repel / link length / center pull / type cluster / murmuration flow intensity. All wired to the existing simulation. |
+
+Persisted on `Settings.data.graphCfg`. Reset button restores defaults.
+
+### TYPE_COLORS extended for new types
+- atoms layer: warm orange/red family (claim `#ff8c5a`, fact `#ffb347`, decision `#e74c3c`, hypothesis `#ffc870`, question `#ff6b9d`, playbook `#a78bfa`, entity `#5fb8c9`).
+- contexts layer: mint green `#7ee787` — visually signals "agent working memory" vs human-maintained synthesis.
+
+### What is NOT in v5 (deferred to v5.1)
+Workflow Rework brief explicitly. Specifically:
+- Temp Inbox capture surface
+- `Prepare for ingest` deterministic normalizer
+- Ingest Drafts / Review Cards
+- Transactional local commit with backup snapshot
+- Finance review-required enforced at Prepare time (helper exists, not yet wired into IngestFlow)
+- Two-layer Kimi/reviewer routing
+- Dated-source-only / archive / discard actions
+
+### Things v5 deliberately did not change
+- LocalStorage keys (backward compat with v4 user data).
+- Existing seed pages (Welcome + Karpathy LLM Wiki) — still curated.
+- Anthropic / OpenAI / OpenRouter / Ollama transports — unchanged.
+- Murmuration animation, hub detection, neuron pulse, link cross-cluster lime accent — preserved.
 
 ---
 
