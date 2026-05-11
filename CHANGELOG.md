@@ -11,12 +11,130 @@ Personal Karpathy-method second brain. Single-file HTML app. No backend (yet).
 | `2026-04-27-ai-wiki-vault-v3.html` | v3 — IBM Plex + D3 graph + rust/lime palette. Compartment silos, review queue, research missions. **Deprecated** — design reference for graph polish only. |
 | `2026-04-30-ai-wiki-vault-v4.html` | v4 — Karpathy method, flat vault, type folders, multi-provider LLM, GitHub sync. Reference until v5 stabilizes. |
 | `2026-05-11-ai-wiki-vault-v5.html` | v5 — atoms/contexts layers + Obsidian graph panel + review-state. Reference until v5.1 stabilizes. |
-| `2026-05-12-ai-wiki-vault-v5.1.html` | **Current.** v5 + Workflow Rework: Temp Inbox · Prepare · Review Gate · transactional Commit with backup · manual GitHub sync gate. |
+| `2026-05-12-ai-wiki-vault-v5.1.html` | v5.1 — Workflow Rework: Temp Inbox / Prepare / Review Gate / transactional Commit / manual sync gate. Reference until v5.2 stabilizes. |
+| `2026-05-13-ai-wiki-vault-v5.2.html` | **Current.** v5.1 + **Shared Sandbox (Layer 0)**: cross-device intake via GitHub `inbox/` folder, atomic claim/process/discard moves, manual refresh, Hermes protocol. |
+| `HERMES_PROTOCOL.md` | Contract for the Hermes processor consuming the Shared Inbox. |
+| `docs/superpowers/specs/2026-05-12-shared-sandbox-design.md` | v5.2 design spec. |
 | `AI_Wiki_Vault_Product_Spec.md` | Original spec (pre-Karpathy pivot). Many decisions superseded. |
 | `AI_First_Second_Brain_Hybrid_Claude_Brief_2026-05-07.md` | Hybrid architecture brief — Karpathy intake + Openclaw synthesis + atoms + contexts. Partial implementation in v5; pilot extraction deferred. |
 | `AI_Wiki_Vault_Workflow_Rework_Claude_Instructions_2026-05-07.md` | Workflow rework brief — Temp Inbox / Prepare / Drafts / Review Gate / Local Commit / Manual Sync. Deferred to v5.1. |
 | `CLAUDE.md` | Repo guide for Claude Code. |
 | `CHANGELOG.md` | This file. |
+
+---
+
+## v5.2 (2026-05-13) — Shared Sandbox (Layer 0)
+
+Source: Hermes shared-sandbox diagnosis + `docs/superpowers/specs/2026-05-12-shared-sandbox-design.md` (this design).
+
+### Problem v5.2 fixes
+v5.1 captures landed in `state.tempItems[]` inside `vault.json`. That blob only sync via heavy whole-vault push on a manual ↻. So a capture on PC was invisible to Mac (and to Hermes) until the user remembered to sync. The LLM/cron processor couldn't trust "what was captured today" — had to infer from sync timing.
+
+Root cause = conflation of two concerns in one storage seam:
+- Intake coordination state (short-lived, multi-writer, must propagate fast)
+- Canonical knowledge state (curated, careful, effectively single-writer)
+
+### Architecture: SharedInbox = new module + new seam
+`SharedInbox` is independent of `Vault`. Two adapters (real seam):
+- `GitHubInboxAdapter` — primary. Talks to GitHub Contents API at `inbox/{state}/cap-*.json`.
+- `LocalInboxCache` — offline cache + pending-push queue (own localStorage key `vault-v4-inbox-cache`).
+
+`Vault.persist()` is NOT called by SharedInbox — separate persist surface, by design.
+
+### Folder layout in the GitHub repo
+```
+inbox/
+  captured/   ← anyone may capture
+  claimed/    ← worker locked it (browser session OR Hermes)
+  processed/  ← committed to vault, kept for audit
+  discarded/  ← rejected, kept for undo
+```
+State transitions = atomic move (PUT new path + DELETE old, sha-checked). Folder name = source of truth — no mutable status field.
+
+### Schema bump (3 → 4)
+- `state.inbox = { last_etag, last_refresh, last_seen_ids }` — minimal cross-session pointer in `vault.json`.
+- The full inbox cache lives in its own localStorage key (`vault-v4-inbox-cache`), separate from vault state.
+- `state.device_id` reformatted on migration: `pc-*` / `mac-*` / `web-*` prefix derived from UA so cross-device toasts read naturally.
+- `GitHubSync.config.inboxFolder` defaults to `'inbox'`.
+
+### Capture file schema (v1)
+```json
+{
+  "capture_id": "cap-20260512T071500-x7k2",
+  "schema_version": 1,
+  "device_id": "pc-...",
+  "captured_at": "ISO",
+  "input_type": "url|text|mixed",
+  "raw_input": "...",
+  "source_url": "...",
+  "source_hint": "finance-trading|null",
+  "user_note": "...",
+  "input_hash": "djb2 ...",
+  "claimed_by": null,
+  "claimed_at": null,
+  "processed_at": null,
+  "draft_refs": [],
+  "discard_reason": null
+}
+```
+
+### Capture flow
+1. User submits Capture modal → `SharedInbox.capture(payload)`.
+2. Item written to `LocalInboxCache` with `local_status: 'pending_push'`. UI renders immediately.
+3. Background `PUT inbox/captured/cap-*.json` → on 201, `local_status: 'pushed'` + cache returned sha.
+4. **`vault.json` is NOT touched.**
+
+### Polling — manual only (per user pref: cost > immediacy)
+- No auto-poll. No interval.
+- `↻ Inbox` button in topbar. `↻ Refresh` in Inbox view.
+- Click → list `inbox/captured/` + `inbox/claimed/` with `If-None-Match` ETag → 304 = no body. Diff against cache → toast "+N from {device}".
+- API cost: 0/hour idle.
+
+### Claim / process / discard (atomic moves)
+```
+SharedInbox.claim(id)         → PUT claimed/X + DELETE captured/X (rollback on race)
+SharedInbox.process(id, refs) → PUT processed/X + DELETE claimed/X + LocalCache.remove
+SharedInbox.discard(id, why)  → PUT discarded/X + DELETE captured-or-claimed/X
+SharedInbox.releaseStale()    → claimed/ items with claimed_at > 10 min → PUT captured/X + DELETE claimed/X
+```
+
+### IngestPipeline.commit integration
+When a draft has `shared_capture_id` (set by `claimAndPrepareSharedInbox()`), commit calls `SharedInbox.process(captureId, { draft_refs: [pageId] })` after writing the vault page. The shared-inbox file moves `claimed/ → processed/` automatically.
+
+### UI changes
+- **Topbar:** new `↻ Inbox` button (manual refresh) next to `⊕ Capture`.
+- **Inbox view rewrite:** renders union of shared `captured/` + shared `claimed/` + legacy v5.1 local `tempItems` (separate section, with explicit "Push to shared inbox" button per item). Per-card border-left = rust (own device) or lime (other device).
+- **Tree:** Workflow section shows total inbox count + pending-push badge (`5 · 2↑` = 5 items, 2 pending GitHub push).
+- **Status pills** per card: device_id, captured/claimed/processed, pending push, claim age.
+
+### Backward compat
+- v5.1 local `state.tempItems[]` migrated to legacy section in Inbox view (not auto-pushed — could be stale junk). User can per-item "Push to shared inbox" or delete.
+- Captures fall back to local-only when GitHub unconfigured (with banner).
+- `vault.json` schema unchanged otherwise.
+
+### Hermes contract
+Documented in `HERMES_PROTOCOL.md`. Summary:
+- Loop: `git pull` → `ls inbox/captured/` → claim → process → move to `processed/` → sleep.
+- Stamp `claimed_by` with stable Hermes identifier.
+- Default action for finance source_hint = `dated_source_only` + `review_required: true`.
+- Don't delete from `processed/` / `discarded/` (audit trail).
+
+### Failure modes
+| Failure | Behavior |
+|---------|----------|
+| GitHub down on capture | Item queued in `pending_push`, badge in tree + view, retry on next ↻ Inbox |
+| GitHub down on refresh | Toast "inbox offline", last-known cache rendered |
+| Claim 409/404 race | Cancel claim, surface conflict toast |
+| Stale claim (>10min) | Auto-recover via `releaseStale()` invoked at refresh |
+| LocalStorage corrupt | Re-fetch from GitHub on next refresh |
+| GitHub not configured | Falls back to v5.1 local-only with banner + warning |
+
+### What is NOT in v5.2
+- Auto-Hermes integration in HTML. Hermes lives outside; protocol is the contract.
+- Realtime websocket / SSE.
+- Per-item encryption.
+- Cross-repo sandbox.
+- Atom extraction + context-pack generation (still v5.3 / v6).
 
 ---
 

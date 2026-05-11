@@ -1,39 +1,64 @@
 # AI Wiki Vault
 
-Personal Karpathy-method second brain. Single-file HTML app. No build, no server, no npm.
+Personal Karpathy-method second brain. Single-file HTML app. No build step, no server, no npm.
 
 ## Run
 
 ```bash
-start 2026-05-12-ai-wiki-vault-v5.1.html
+start 2026-05-13-ai-wiki-vault-v5.2.html
 ```
 
 Open the HTML file in a browser. That is the app.
 
-## Current workflow (v5.1)
+## Current workflow (v5.2)
 
-Primary path:
+### Primary path
+1. **Capture** — paste URL(s), PDF, or text into the **Shared Inbox**
+2. **↻ Inbox** — manually refresh shared intake from GitHub when you want the latest cross-device state
+3. **Claim + Prepare** — lock an inbox item and normalize it into reviewable drafts
+4. **Review** — inspect title, type, summary, warnings, and suggested action
+5. **Commit local** — write curated vault changes with a pre-commit backup snapshot
+6. **↻ Sync** — manually push the curated `vault.json` state to GitHub
 
-1. **Capture** — paste URL(s), PDF, or text into **Temp Inbox**
-2. **Prepare** — deterministic normalization and draft creation
-3. **Review** — inspect title, type, summary, warnings, and suggested action
-4. **Commit local** — write to vault with a pre-commit backup snapshot
-5. **Sync remote** — optional manual GitHub sync via `vault.json`
+### Key separation
+- **Shared Inbox** = cross-device intake coordination layer
+- **Vault** = curated knowledge layer
 
-This is a deliberate shift away from the old “capture immediately mutates vault and auto-pushes” model.
+This is the main v5.2 shift: capture no longer depends on a full-vault sync before another device or Hermes can see it.
 
-There is still a **`⊕ Direct`** escape hatch for the legacy fast path, but the default v5.1 workflow is staged and review-gated.
+## What v5.2 changes
+
+v5.1 made capture safer, but it was still local-first. v5.2 adds a **Shared Sandbox / Layer 0** so intake is visible across devices before canonical vault sync.
+
+### Shared inbox model
+Captures live as per-item JSON files in the GitHub repo:
+
+```text
+inbox/
+  captured/
+  claimed/
+  processed/
+  discarded/
+```
+
+- **captured** — newly submitted intake items
+- **claimed** — locked by a browser session or Hermes processor
+- **processed** — successfully committed/audited
+- **discarded** — intentionally rejected, retained for audit
+
+State transitions use atomic moves (`PUT` new path + `DELETE` old path).
 
 ## What it does
 
-- **Capture / Review workflow** — Temp Inbox, Prepare, Review Gate, local commit, manual sync
-- **Ingest** — commit a source/clip page plus concept/person stubs and auto-links
-- **Finance quarantine** — finance-like content is flagged `review_required` and defaults toward safer handling
+- **Shared capture workflow** — cross-device inbox backed by GitHub `inbox/`
+- **Manual low-cost refresh** — `↻ Inbox`, no auto-poll
+- **Review-gated ingest** — claim, prepare, review, commit
+- **Backups** — pre-commit snapshots with restore support
+- **Finance quarantine** — finance-like content is flagged `review_required`
 - **Query** — ask vault questions; AI answers with `[[wikilink]]` citations
 - **Lint** — scan for broken links, orphans, and missing summaries
 - **Graph** — D3 force-directed graph with Obsidian-style control panel
-- **Backups** — pre-commit snapshots with restore support
-- **Sync** — optional GitHub backing via a single `vault.json` blob
+- **Canonical vault sync** — optional GitHub backing via `vault.json`
 
 ## Data model
 
@@ -45,7 +70,7 @@ The vault is organized as layered page types:
 - **Contexts layer** — `context-pack`
 - **Meta** — `anchor`
 
-v5 adds the type system and review-state model. v5.1 adds the staged ingest workflow around them.
+v5 added the type system and review-state model. v5.1 added the staged ingest workflow. v5.2 adds the shared cross-device inbox seam in front of that workflow.
 
 ## Configure
 
@@ -53,38 +78,45 @@ Click **⚙ Settings**.
 
 - **LLM Provider** — Mock, OpenAI, OpenRouter, Anthropic, Ollama, Custom
 - **GitHub Sync** — owner, repo, branch, path, PAT
+- **GitHub Inbox folder** — defaults to `inbox`
 - **Graph config** — groups, filters, colors, display, force tuning
 
 Notes:
-- **Mock** works offline and is useful for testing flow, but extraction quality is intentionally limited.
+- **Mock** works offline and is useful for flow testing, but extraction quality is intentionally limited.
 - Real providers give better concept/entity extraction.
-- GitHub sync is manual by default in v5.1.
+- **↻ Inbox** is manual by design to save API cost.
+- **↻ Sync** is for curated vault state, not raw intake coordination.
 
 ## Files
 
-- `2026-05-12-ai-wiki-vault-v5.1.html` — current app
-- `index.html` — deployed entry file / site root; currently still serving the older v4 build until you promote v5.1 into it
+- `2026-05-13-ai-wiki-vault-v5.2.html` — current app build
+- `index.html` — deployed entry file / site root; should mirror the promoted live version
 - `CHANGELOG.md` — authoritative decision record
 - `CLAUDE.md` — maintainer guide for Claude Code
+- `HERMES_PROTOCOL.md` — contract for the always-on Hermes processor
+- `docs/superpowers/specs/2026-05-12-shared-sandbox-design.md` — v5.2 shared sandbox design spec
 - `AI_First_Second_Brain_Hybrid_Claude_Brief_2026-05-07.md` — architecture brief behind v5
 - `AI_Wiki_Vault_Workflow_Rework_Claude_Instructions_2026-05-07.md` — workflow rework brief behind v5.1
 - earlier `*.html` — deprecated historical versions
 
 ## Status
 
-**Latest repo version:** v5.1 — workflow rework is implemented in `2026-05-12-ai-wiki-vault-v5.1.html`.
+**Latest repo version:** v5.2 — shared sandbox / cross-device inbox implemented in `2026-05-13-ai-wiki-vault-v5.2.html`.
 
-**Currently deployed site entry:** `index.html` still serves the older v4 build until you replace or redirect it.
+**Deployed site entry:** `index.html` should serve the promoted v5.2 build when the repo is up to date on GitHub Pages.
 
 Implemented now:
-- Temp Inbox / Prepare / Review Gate
+- Shared Inbox / Layer 0
+- manual `↻ Inbox` refresh
+- claim / process / discard flow
 - local commit with backup snapshots
-- manual sync gate
+- manual vault sync gate
 - finance review-required handling
 - atoms/context page types
 - graph control panel
+- Hermes processor contract
 
-Not in v5.1 yet:
+Still deferred:
 - LLM-driven atom extraction into `claim` / `fact` / `decision` pages
 - context-pack generation from promoted atoms
 - typed relationships like `derived_from`, `supports`, `contradicts`
@@ -93,7 +125,8 @@ Not in v5.1 yet:
 
 ## Rule of thumb
 
-If you want the truth about product state, read:
+If you want the truth about product state, read in this order:
 1. `CHANGELOG.md`
-2. `2026-05-12-ai-wiki-vault-v5.1.html`
-3. `README.md`
+2. `docs/superpowers/specs/2026-05-12-shared-sandbox-design.md`
+3. `2026-05-13-ai-wiki-vault-v5.2.html`
+4. `README.md`

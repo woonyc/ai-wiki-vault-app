@@ -11,7 +11,7 @@ Single-file HTML prototype for AI Wiki Vault — an Obsidian-inspired, AI-assist
 ## How to run
 
 ```bash
-start 2026-05-12-ai-wiki-vault-v5.1.html
+start 2026-05-13-ai-wiki-vault-v5.2.html
 ```
 
 Persistence is `localStorage` (keys still `vault-v4-*` for backward compatibility — v5/v5.1 read v4 user data without migration friction). Optional GitHub sync uses a single `vault.json` blob configured in **⚙ Settings**.
@@ -25,14 +25,15 @@ Persistence is `localStorage` (keys still `vault-v4-*` for backward compatibilit
 | `2026-04-27-ai-wiki-vault-v3.html` | v3 — IBM Plex + D3 + rust/lime palette. Compartment silos, review queue, research missions. **Deprecated**, kept only as graph polish reference. |
 | `2026-04-30-ai-wiki-vault-v4.html` | v4 — Karpathy method, flat vault, multi-provider LLM, GitHub sync. Reference until v5 stabilizes. |
 | `2026-05-11-ai-wiki-vault-v5.html` | v5 — atoms/contexts + Obsidian graph panel + review-state. Reference until v5.1 stabilizes. |
-| `2026-05-12-ai-wiki-vault-v5.1.html` | **Current.** v5 + Workflow Rework (Temp Inbox, Prepare, Review Gate, transactional Commit with backup, manual sync gate). |
-| `index.html` | Site entry file currently served at the custom domain. It is still the older v4 build until you explicitly promote v5.1 into it. |
+| `2026-05-12-ai-wiki-vault-v5.1.html` | v5.1 — Workflow Rework: Temp Inbox / Prepare / Review Gate / transactional Commit / manual sync gate. |
+| `2026-05-13-ai-wiki-vault-v5.2.html` | **Current.** v5.1 + Shared Sandbox (Layer 0): cross-device intake via GitHub `inbox/` folder, atomic claim/process/discard, Hermes protocol. |
+| `index.html` | Site entry file currently served at the custom domain. Still serving v4 until you explicitly promote v5.2 into it. |
 
 Earlier specs (`AI_Wiki_Vault_Product_Spec.md`) describe a pre-v4 model with compartments, review queue, claims, contradictions — **partially superseded**. Check `CHANGELOG.md` for what was killed and why.
 
 The two 05-07 briefs (`AI_First_Second_Brain_Hybrid_Claude_Brief_2026-05-07.md` and `AI_Wiki_Vault_Workflow_Rework_Claude_Instructions_2026-05-07.md`) are the source of v5/v5.1 design.
 
-## Architecture (v5.1)
+## Architecture (v5.2)
 
 All logic lives in one `<script>` tag. Modules are conventional: single-file but intentionally seamed.
 
@@ -46,7 +47,10 @@ All logic lives in one `<script>` tag. Modules are conventional: single-file but
 | `PROVIDER_PRESETS` | Mock / OpenAI / OpenRouter / Anthropic / Ollama / Custom. |
 | `SourceFetcher` | URL (Jina Reader), PDF (pdf.js), text adapters. |
 | `IngestFlow` | v4 single-shot ingest modal. Still wired to `⊕ Direct` topbar button + Cmd-I. State machine: idle → fetching → preview → committing → done/error. |
-| `IngestPipeline` | **Primary v5.1 path.** `capture()` → `normalize()` → `prepare()` → `commit(action)` → `archiveDraft()` / `discardDraft()`. Gated through Temp Inbox + Review before mutating the vault. |
+| `IngestPipeline` | v5.1 staged workflow. v5.2 keeps `normalize()` / `prepare()` / `commit(action)` / `archiveDraft()` / `discardDraft()`. `capture()` is no longer the primary entry — `SharedInbox.capture()` is. `commit()` now also moves the originating shared-inbox file to `processed/` when the draft has `shared_capture_id`. |
+| **`SharedInbox`** | **v5.2 primary intake seam.** Cross-device sandbox backed by GitHub `inbox/{captured,claimed,processed,discarded}/cap-*.json`. Public API: `capture()`, `list(state)`, `refresh()`, `claim()`, `process()`, `discard()`, `releaseStale()`, `flushPendingPush()`, `status()`. |
+| `GitHubInboxAdapter` | v5.2 GitHub Contents API adapter for the inbox folder. `listFolder()` (with `If-None-Match` ETag), `getFile()`, `putFile()`, `deleteFile()`. |
+| `LocalInboxCache` | v5.2 offline cache + pending-push queue, in own localStorage key `vault-v4-inbox-cache`. Independent persist from `Vault`. |
 | `TempItem`, `IngestDraft`, `IngestLogEntry` | v5.1 factories backing the staged pipeline. |
 | `detectFinance(text)`, `canonicalizeUrl(u)` | Deterministic helpers used by `IngestPipeline.normalize` to flag `review_required` and strip tracking params. |
 | `LinkResolver` | Explicit/backlink/tag-peer derivation. |
@@ -64,12 +68,14 @@ All logic lives in one `<script>` tag. Modules are conventional: single-file but
 
 **Karpathy operations still matter, but the default workflow changed in v5.1.**
 
-### Primary path (v5.1)
-- **Capture** — paste URL/PDF/text into Temp Inbox. No vault mutation.
-- **Prepare** — deterministic normalization into ingest drafts.
+### Primary path (v5.2)
+- **Capture** — paste URL/PDF/text. Writes to **Shared Inbox** (GitHub `inbox/captured/`) so PC + Mac + Hermes all see it. No vault mutation.
+- **Refresh (manual)** — `↻ Inbox` pulls new captured/claimed items from GitHub. No auto-poll.
+- **Claim + Prepare** — atomic move to `inbox/claimed/` (other devices see lock), then deterministic normalization into ingest drafts.
 - **Review** — inspect title, type, warnings, summary, suggested action.
-- **Commit local** — write to vault with pre-commit backup snapshot.
-- **Sync remote** — manual GitHub push via ↻ Sync.
+- **Commit local** — write to vault with pre-commit backup snapshot. Originating inbox file atomically moves to `inbox/processed/`.
+- **Sync remote** — manual GitHub push via `↻ Sync` for the curated `vault.json`. Inbox state was already on GitHub all along (separate seam).
+- **Discard** — atomic move to `inbox/discarded/` (kept for audit).
 
 ### Legacy fast path
 - **`⊕ Direct` / Cmd-I** — keeps the old single-shot ingest modal for explicit bypass of the staged workflow.
@@ -119,7 +125,7 @@ Heuristic extraction in `MockLLM`. Real LLM calls require a user-configured key 
 - Flat vault with **type-folders** (descriptive), not compartment silos.
 - **Primary path is staged review**, not auto-mutate-on-capture.
 - `⊕ Direct` remains only as an explicit fast-path escape hatch.
-- localStorage is primary; GitHub is a sync layer, not the source of truth during editing.
+- localStorage remains primary for active canonical-vault editing; the Shared Inbox is GitHub-backed and is the cross-device intake source of truth.
 - Browser-direct API calls — keys in localStorage, personal-use only. No backend.
 - Single `vault.json` blob on GitHub. File-native markdown export is deferred until the core loop is trusted.
 
