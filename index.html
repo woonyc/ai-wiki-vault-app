@@ -688,6 +688,10 @@ const GitHubSync = {
   _merge(remote, local){
     if (!remote) return local;
     const out = JSON.parse(JSON.stringify(remote));
+    out.sync = local.sync || remote.sync || { last_synced_remote_sha:null, last_synced_at:null, sync_status:'unknown' };
+    out.inbox = local.inbox || remote.inbox || { last_etag:null, last_refresh:null, last_seen_ids:[] };
+    out.device_id = local.device_id || remote.device_id || ('web-' + Math.random().toString(36).slice(2,10));
+    out.revision = Math.max(remote.revision||0, local.revision||0);
     // pages — newer .updated wins
     const lMap = Object.fromEntries((local.pages||[]).map(p=>[p.id,p]));
     const rMap = Object.fromEntries((remote.pages||[]).map(p=>[p.id,p]));
@@ -779,6 +783,14 @@ const Vault = {
     s.pages ||= []; s.sources ||= []; s.drafts ||= []; s.log ||= [];
     s.batches ||= [];   // ingest batch records (for revert)
     s.ui ||= { selectedPageId:null, activeView:'page' };
+    s.sync ||= { last_synced_remote_sha:null, last_synced_at:null, sync_status:'unknown' };
+    s.inbox ||= { last_etag: null, last_refresh: null, last_seen_ids: [] };
+    s.revision ||= 0;
+    if (!s.device_id) {
+      const ua = navigator.userAgent || '';
+      const kind = /Mac|iPhone|iPad/.test(ua) ? 'mac' : (/Windows/.test(ua) ? 'pc' : 'web');
+      s.device_id = `${kind}-${Math.random().toString(36).slice(2,10)}`;
+    }
 
     // --- v5 migration (schemaVersion 1 -> 2) ---
     if (s.schemaVersion < 2){
@@ -1416,6 +1428,7 @@ const SharedInbox = {
       // Stale claim sweep (auto-recover)
       await this.releaseStale();
 
+      Vault.state.inbox ||= { last_etag:null, last_refresh:null, last_seen_ids:[] };
       Vault.state.inbox.last_refresh = now();
       Vault.persist();
       return {
