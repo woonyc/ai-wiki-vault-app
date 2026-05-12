@@ -1189,11 +1189,26 @@ const GitHubInboxAdapter = {
       branch: GitHubSync.config.branch
     };
     if (sha) body.sha = sha;
-    const res = await fetch(this.apiUrl(this.filePath(state, captureId)), {
-      method: 'PUT', headers: GitHubSync.headers(), body: JSON.stringify(body)
-    });
-    if (res.status === 409 || res.status === 422) return { ok:false, conflict:true };
-    if (!res.ok) throw new Error(`Inbox put ${res.status}: ${(await res.text()).slice(0,160)}`);
+    let res, errText = '';
+    try {
+      res = await fetch(this.apiUrl(this.filePath(state, captureId)), {
+        method: 'PUT', headers: GitHubSync.headers(), body: JSON.stringify(body)
+      });
+    } catch(netErr){
+      // Network / CORS / DNS failure — fetch throws, never returns
+      return { ok:false, status:0, error: `network: ${netErr.message}`, retryable:true };
+    }
+    if (!res.ok){
+      try { errText = (await res.text()).slice(0,300); } catch(_){}
+    }
+    // 409 = sha conflict on UPDATE only. For first-time PUT (no sha) 409 means race, not benign.
+    // 422 = GitHub validation error — branch missing, malformed body, bad path. NEVER swallow as conflict.
+    if (sha && res.status === 409) return { ok:false, status:409, error:'sha conflict', conflict:true, retryable:false };
+    if (res.status === 422) return { ok:false, status:422, error:`422 validation: ${errText}`, retryable:false };
+    if (res.status === 401) return { ok:false, status:401, error:'401 bad PAT or token expired', retryable:false };
+    if (res.status === 403) return { ok:false, status:403, error:`403 forbidden — PAT lacks repo:contents write scope, or rate limit: ${errText}`, retryable:false };
+    if (res.status === 404) return { ok:false, status:404, error:`404 not found — owner/repo/branch wrong: ${errText}`, retryable:false };
+    if (!res.ok)            return { ok:false, status: res.status, error:`${res.status}: ${errText}`, retryable:false };
     const data = await res.json();
     return { ok:true, sha: data.content.sha };
   },
@@ -1215,12 +1230,7 @@ const GitHubInboxAdapter = {
 
 /* ----- SharedInbox: the seam ----- */
 const SharedInbox = {
-  init(){
-    LocalInboxCache.load();
-    if (GitHubInboxAdapter.configured() && LocalInboxCache.data?.pending_push?.length){
-      this.flushPendingPush().catch(e => console.warn('pending inbox push retry failed:', e.message));
-    }
-  },
+  init(){ LocalInboxCache.load(); },
 
   status(){
     const cache = LocalInboxCache.data || LocalInboxCache.load();
@@ -1267,72 +1277,82 @@ const SharedInbox = {
     }
 
     LocalInboxCache.enqueuePush(captureId);
-    toast('Captured — upload queued for Shared Inbox');
     // Fire-and-forget push; UI updates on completion via re-render
     this._pushItem(captureId).catch(e => console.warn('capture push deferred:', e.message));
     return item;
   },
 
+  // Global last-push diagnostic. Reset on each push attempt.
+  _lastPush: { ts:null, captureId:null, ok:null, status:null, error:null },
+
   async _pushItem(captureId){
     const cache = LocalInboxCache.data;
     const item = cache.items[captureId];
-    if (!item) return { ok:false, error:'missing local capture' };
-    const { _folder, local_status, sha, _push_error, _push_attempted_at, ...payload } = item;
+    if (!item) return { ok:false, error:'item missing from cache' };
+    const { _folder, local_status, sha, _last_push_error, ...payload } = item;
+    this._lastPush = { ts: now(), captureId, ok:null, status:null, error:null };
     try {
       const r = await GitHubInboxAdapter.putFile('captured', captureId, payload);
+      this._lastPush = { ts: now(), captureId, ok: r.ok, status: r.status || (r.ok?201:0), error: r.error || null };
       if (r.ok){
-        LocalInboxCache.upsert(item, {
-          _folder:'captured',
-          local_status:'pushed',
-          sha: r.sha,
-          _push_error: null,
-          _push_attempted_at: now()
-        });
+        LocalInboxCache.upsert(item, { _folder:'captured', local_status:'pushed', sha: r.sha, _last_push_error: null });
         LocalInboxCache.dequeuePush(captureId);
+        console.log(`[SharedInbox] ↑1 pushed ${captureId}`);
+        if (typeof toast === 'function') toast(`↑1 pushed to Shared Inbox`);
         if (typeof render === 'function' && Vault.state?.ui?.activeView === 'inbox') render();
-        return { ok:true, sha:r.sha };
+        return r;
       }
-      const msg = r?.conflict ? 'GitHub reported a file conflict while pushing capture' : 'GitHub did not accept the inbox upload';
-      LocalInboxCache.upsert(item, {
-        _folder:'captured',
-        local_status:'pending_push',
-        sha: null,
-        _push_error: msg,
-        _push_attempted_at: now()
-      });
-      return { ok:false, error: msg };
+      // Ambiguous create failure recovery: if the file already exists remotely, adopt it instead
+      // of leaving a ghost pending_push entry forever.
+      if ((r.status === 409 || r.status === 422) && !sha){
+        try {
+          const remote = await GitHubInboxAdapter.getFile('captured', captureId);
+          if (remote && remote.content?.capture_id === payload.capture_id && remote.content?.input_hash === payload.input_hash){
+            this._lastPush = { ts: now(), captureId, ok:true, status:200, error:null };
+            LocalInboxCache.upsert(remote.content, { _folder:'captured', local_status:'pushed', sha: remote.sha, _last_push_error: null });
+            LocalInboxCache.dequeuePush(captureId);
+            console.warn(`[SharedInbox] reconciled existing remote capture ${captureId} after ${r.status}`);
+            if (typeof toast === 'function') toast(`✓ Shared Inbox reconciled existing capture`);
+            if (typeof render === 'function' && Vault.state?.ui?.activeView === 'inbox') render();
+            return { ok:true, sha: remote.sha, reconciled:true };
+          }
+        } catch(reconcileErr){
+          console.warn(`[SharedInbox] reconcile failed for ${captureId}: ${reconcileErr.message}`);
+        }
+      }
+      // Failure — record on the item so UI can surface per-card error
+      LocalInboxCache.upsert(item, { _folder:'captured', local_status:'pending_push', sha: null, _last_push_error: r.error });
+      console.warn(`[SharedInbox] push failed [${r.status}] ${captureId}: ${r.error}`);
+      if (typeof toast === 'function') toast(`⚠ Shared Inbox upload pending — ${r.error.slice(0,100)}`);
+      if (typeof render === 'function' && Vault.state?.ui?.activeView === 'inbox') render();
+      return r;
     } catch(e){
-      console.warn('push failed for', captureId, e.message);
-      LocalInboxCache.upsert(item, {
-        _folder:'captured',
-        local_status:'pending_push',
-        sha: null,
-        _push_error: e.message,
-        _push_attempted_at: now()
-      });
-      toast(`Shared Inbox upload pending — ${String(e.message || 'push failed').slice(0,80)}`);
-      return { ok:false, error: e.message || 'push failed' };
+      this._lastPush = { ts: now(), captureId, ok:false, status:0, error: `exception: ${e.message}` };
+      LocalInboxCache.upsert(item, { _folder:'captured', local_status:'pending_push', sha: null, _last_push_error: `exception: ${e.message}` });
+      console.error(`[SharedInbox] push exception ${captureId}:`, e);
+      if (typeof toast === 'function') toast(`⚠ Shared Inbox push exception — ${e.message.slice(0,100)}`);
+      return { ok:false, error: e.message };
     }
   },
+
+  lastPushReport(){ return this._lastPush; },
 
   async flushPendingPush(){
     const cache = LocalInboxCache.data;
-    let pushed = 0, failed = 0;
-    const errors = [];
+    let pushed = 0, failed = 0, lastError = null;
     for (const id of [...cache.pending_push]){
-      const result = await this._pushItem(id);
-      if (result?.ok) pushed++;
-      else {
-        failed++;
-        if (result?.error && errors.length < 3) errors.push(result.error);
-      }
+      const r = await this._pushItem(id);
+      if (r && r.ok) pushed++;
+      else { failed++; if (r && r.error) lastError = r.error; }
     }
-    return { pushed, failed, errors };
+    return { pushed, failed, lastError };
   },
 
-  /* Manual refresh — list captured + claimed, diff against cache, surface deltas. */
+  /* Manual refresh — flush any pending-push first, then list captured + claimed, diff, surface deltas. */
   async refresh(){
     if (!GitHubInboxAdapter.configured()) return { error: 'GitHub not configured' };
+    // v5.2 fix — retry pending pushes BEFORE listing, so this device's captures hit GitHub before we try to read it back.
+    const flush = await this.flushPendingPush();
     const cache = LocalInboxCache.data;
     const seenBefore = new Set(Object.keys(cache.items).filter(id => (cache.items[id]._folder || 'captured') === 'captured'));
 
@@ -1398,9 +1418,14 @@ const SharedInbox = {
 
       Vault.state.inbox.last_refresh = now();
       Vault.persist();
-      return { added, removed, total: Object.keys(LocalInboxCache.data.items).length };
+      return {
+        added, removed,
+        total: Object.keys(LocalInboxCache.data.items).length,
+        pushed: flush.pushed, failed: flush.failed,
+        pushError: flush.lastError || null
+      };
     } catch(e){
-      return { error: e.message };
+      return { error: e.message, pushed: flush?.pushed || 0, failed: flush?.failed || 0 };
     }
   },
 
@@ -1417,7 +1442,7 @@ const SharedInbox = {
     if (!got) return { ok:false, conflict:true, reason:'already moved' };
     const item = { ...got.content, claimed_by: Vault.state.device_id, claimed_at: now() };
     const putRes = await GitHubInboxAdapter.putFile('claimed', captureId, item, null, `claim ${captureId} by ${Vault.state.device_id}`);
-    if (!putRes.ok) return { ok:false, conflict:true, reason:'claimed/ already exists' };
+    if (!putRes.ok) return { ok:false, conflict: !!putRes.conflict, status: putRes.status || 0, reason: putRes.error || 'claimed/ put failed' };
     const delRes = await GitHubInboxAdapter.deleteFile('captured', captureId, got.sha);
     if (!delRes.ok){
       // Race: another party moved/deleted captured/ first. Roll back our claimed/ write.
@@ -1437,7 +1462,7 @@ const SharedInbox = {
     if (!got) return { ok:false, reason:'claimed file missing' };
     const item = { ...got.content, processed_at: now(), draft_refs };
     const putRes = await GitHubInboxAdapter.putFile('processed', captureId, item, null, `process ${captureId}`);
-    if (!putRes.ok) return { ok:false, reason:'processed/ put conflict' };
+    if (!putRes.ok) return { ok:false, status: putRes.status || 0, reason: putRes.error || 'processed/ put failed' };
     const delRes = await GitHubInboxAdapter.deleteFile('claimed', captureId, got.sha);
     if (!delRes.ok){
       try { await GitHubInboxAdapter.deleteFile('processed', captureId, putRes.sha); } catch(_){}
@@ -1461,7 +1486,7 @@ const SharedInbox = {
     }
     const item = { ...got.content, discard_reason: reason, processed_at: now() };
     const putRes = await GitHubInboxAdapter.putFile('discarded', captureId, item, null, `discard ${captureId}`);
-    if (!putRes.ok) return { ok:false, reason:'discarded/ put conflict' };
+    if (!putRes.ok) return { ok:false, status: putRes.status || 0, reason: putRes.error || 'discarded/ put failed' };
     const delRes = await GitHubInboxAdapter.deleteFile(from, captureId, got.sha);
     if (!delRes.ok){
       try { await GitHubInboxAdapter.deleteFile('discarded', captureId, putRes.sha); } catch(_){}
@@ -2519,13 +2544,13 @@ function openCaptureModal(){
     // v5.2 — write to SharedInbox (cross-device). Falls back to local-only if GitHub not configured.
     try {
       SharedInbox.capture({ raw_input: txt, source_hint: $('#capHint').value.trim(), user_note: $('#capNote').value.trim() });
-      const pendingPush = LocalInboxCache.data.pending_push.length;
-      const totalCap = SharedInbox.list('captured').length;
       closeCaptureModal();
       Vault.state.ui.activeView = 'inbox'; Vault.persist(); render();
-      toast(GitHubInboxAdapter.configured()
-        ? `Captured to shared inbox (${totalCap} captured · ${pendingPush} pending push)`
-        : `Captured (local only — configure GitHub in ⚙ to share)`);
+      // v5.2 — toast only for the local-only fallback. When GitHub is configured, _pushItem
+      // owns the result toast (↑1 pushed | ⚠ pending push) to avoid two toasts overwriting.
+      if (!GitHubInboxAdapter.configured()){
+        toast(`Captured (local only — configure GitHub in ⚙ to share)`);
+      }
     } catch(e){
       toast('Capture failed: ' + e.message.slice(0,80));
     }
@@ -2562,7 +2587,17 @@ function renderInboxView(){
   const main = $('#mainContent');
   let warnHtml = '';
   if (!ghOk) warnHtml += `<div class="inbox-warn">GitHub not configured — captures stay local-only. Open <b>⚙ Settings</b> to enable cross-device sharing.</div>`;
-  if (pendingPushIds.length) warnHtml += `<div class="inbox-warn">${pendingPushIds.length} capture(s) pending push to GitHub. Click ↻ Refresh or capture again to retry.</div>`;
+  if (pendingPushIds.length){
+    const firstErr = pendingPushIds
+      .map(id => (LocalInboxCache.data?.items || {})[id]?._last_push_error)
+      .filter(Boolean)[0];
+    warnHtml += `<div class="inbox-warn critical">${pendingPushIds.length} capture(s) pending push${firstErr?` — last error: <code style="font-family:var(--mono);font-size:11px">${escapeHtml(firstErr.slice(0,240))}</code>`:''}. Click ↻ Refresh to retry, or run <code>await diagnoseInbox()</code> in DevTools console for a full report.</div>`;
+  }
+  // Last-push global hint
+  const lp = SharedInbox._lastPush;
+  if (lp && lp.ts && lp.ok === false){
+    warnHtml += `<div class="inbox-warn">Last push at ${escapeHtml(lp.ts.slice(11,19))} UTC: status ${lp.status||'?'} — ${escapeHtml((lp.error||'').slice(0,180))}</div>`;
+  }
   if (totalCaptured > 25) warnHtml += `<div class="inbox-warn critical">Stale inbox: ${totalCaptured} captured items. Prepare or discard in batches.</div>`;
   else if (totalCaptured > 10) warnHtml += `<div class="inbox-warn">Inbox filling up: ${totalCaptured} captured. Consider preparing.</div>`;
 
@@ -4100,10 +4135,26 @@ function openSettingsModal(){
           <label>PAT</label>
           <input id="ghToken" type="password" value="${escapeHtml(GitHubSync.config.token)}" placeholder="github_pat_…" autocomplete="off" />
         </div>
+        <div class="form-row">
+          <label>Inbox folder</label>
+          <input id="ghInboxFolder" value="${escapeHtml(GitHubSync.config.inboxFolder || 'inbox')}" placeholder="inbox" />
+        </div>
         <div class="form-hint" style="margin-top:10px">
-          Create token at <code>github.com/settings/tokens</code> with <code>repo</code> scope (fine-grained or classic). Vault syncs as a single JSON file at the path above. Multi-device: open this app on another browser/phone with the same config — it pulls the same file.
+          Create token at <code>github.com/settings/tokens</code> with <code>repo</code> scope (fine-grained or classic; fine-grained needs <b>Contents: Read and write</b> on this repo). Vault syncs as a single JSON file at the path above. Multi-device: open this app on another browser/phone with the same config — it pulls the same file.
         </div>
         ${GitHubSync.configured() ? `<div class="form-callout" style="margin-top:10px"><b style="color:var(--lime)">${GitHubSync.state==='synced'?'✓ Synced':'Configured'}</b> — repo <code>${escapeHtml(GitHubSync.config.owner)}/${escapeHtml(GitHubSync.config.repo)}</code>${GitHubSync.lastError?` · last error: ${escapeHtml(GitHubSync.lastError.slice(0,80))}`:''}</div>` : ''}
+
+        <!-- v5.2 — Shared Inbox diagnostic -->
+        <div class="form-callout" style="margin-top:14px;border-left-color:var(--rust)">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <b style="color:var(--rust)">Shared Inbox diagnostic</b><br>
+              <span style="color:var(--ink-3);font-size:10px">Round-trip test: config → repo → branch → write → read → list → delete. Use when cross-device captures aren't appearing.</span>
+            </div>
+            <button id="btnInboxDiag" class="op" style="white-space:nowrap">Run Inbox Diagnostic</button>
+          </div>
+          <pre id="inboxDiagOut" style="display:none;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--ink-2);background:var(--bg);padding:8px;max-height:240px;overflow:auto;white-space:pre-wrap;border:1px solid var(--line)"></pre>
+        </div>
       </div>
     `,
     actions: [
@@ -4159,12 +4210,14 @@ function openSettingsModal(){
                           $('#ghRepo').value.trim() !== GitHubSync.config.repo ||
                           $('#ghToken').value.trim() !== GitHubSync.config.token ||
                           $('#ghBranch').value.trim() !== GitHubSync.config.branch ||
-                          $('#ghPath').value.trim() !== GitHubSync.config.path;
+                          $('#ghPath').value.trim() !== GitHubSync.config.path ||
+                          ($('#ghInboxFolder')?.value.trim() || 'inbox') !== (GitHubSync.config.inboxFolder || 'inbox');
         GitHubSync.config.owner = $('#ghOwner').value.trim();
         GitHubSync.config.repo = $('#ghRepo').value.trim();
         GitHubSync.config.branch = $('#ghBranch').value.trim() || 'main';
         GitHubSync.config.path = $('#ghPath').value.trim() || 'vault.json';
         GitHubSync.config.token = $('#ghToken').value.trim();
+        GitHubSync.config.inboxFolder = $('#ghInboxFolder')?.value.trim() || 'inbox';
         if (ghChanged) GitHubSync.sha = null;  // reset SHA on config change
         GitHubSync.save();
 
@@ -4184,6 +4237,34 @@ function openSettingsModal(){
       }}
     ]
   });
+
+  // v5.2 — Shared Inbox diagnostic button
+  const diagBtn = $('#btnInboxDiag');
+  const diagOut = $('#inboxDiagOut');
+  if (diagBtn) diagBtn.onclick = async () => {
+    diagBtn.disabled = true; diagBtn.textContent = 'Running…';
+    diagOut.style.display = 'block';
+    diagOut.textContent = 'Diagnosing…';
+    // Save the current Settings inputs to GitHubSync.config FIRST so diag runs against the
+    // values shown in the form (not stale ones). Don't persist yet — user may not save.
+    const prev = { ...GitHubSync.config };
+    GitHubSync.config.owner = $('#ghOwner').value.trim();
+    GitHubSync.config.repo = $('#ghRepo').value.trim();
+    GitHubSync.config.branch = $('#ghBranch').value.trim() || 'main';
+    GitHubSync.config.path = $('#ghPath').value.trim() || 'vault.json';
+    GitHubSync.config.token = $('#ghToken').value.trim();
+    GitHubSync.config.inboxFolder = $('#ghInboxFolder')?.value.trim() || 'inbox';
+    try {
+      const report = await window.diagnoseInbox();
+      const lines = report.steps.map(s => `${s.ok?'✓':'✗'} ${s.name} — ${s.detail||''}`).join('\n');
+      diagOut.textContent = lines + '\n\n— SUMMARY —\n' + (report.summary || '(none)');
+    } catch(e){
+      diagOut.textContent = 'Diagnostic threw: ' + e.message;
+    } finally {
+      Object.assign(GitHubSync.config, prev);  // rollback un-saved edits
+      diagBtn.disabled = false; diagBtn.textContent = 'Run Inbox Diagnostic';
+    }
+  };
 
   // provider tab switching — update model field default + rerender
   $$('.src-tab[data-prov]').forEach(b => b.onclick = () => {
@@ -4323,6 +4404,18 @@ function boot(){
   Vault.init();
   GitHubSync.load();
   SharedInbox.init();   // v5.2 — load inbox cache + pending-push queue
+  // v5.2 — boot retry for pending shared-inbox pushes (parity with Hermes 561edf9).
+  // Fire-and-forget after a 1s delay so DOM is ready + initial render doesn't block.
+  setTimeout(() => {
+    if (GitHubInboxAdapter.configured() && (LocalInboxCache.data?.pending_push?.length || 0) > 0){
+      const n = LocalInboxCache.data.pending_push.length;
+      console.log(`[SharedInbox] boot retry: ${n} pending push(es)`);
+      SharedInbox.flushPendingPush().then(r => {
+        if (r.pushed) toast(`✓ ${r.pushed} queued capture(s) pushed on boot`);
+        if (r.failed && Vault.state?.ui?.activeView === 'inbox') render();
+      }).catch(e => console.warn('[SharedInbox] boot retry failed:', e.message));
+    }
+  }, 1000);
 
   applyProvider();
 
@@ -4351,14 +4444,17 @@ function boot(){
   $('#opInboxRefresh').onclick = async () => {
     if (!GitHubInboxAdapter.configured()){ toast('Configure GitHub in ⚙ Settings to share captures'); return; }
     toast('Refreshing shared inbox…');
-    const pushed = await SharedInbox.flushPendingPush();
     const r = await SharedInbox.refresh();
-    if (r.error) toast('Inbox refresh failed: ' + r.error.slice(0,100));
-    else {
-      const pushedMsg = pushed.pushed > 0 ? `↑${pushed.pushed} pushed · ` : '';
-      const failedMsg = pushed.failed > 0 ? `↑${pushed.failed} still pending · ` : '';
-      const errorMsg = pushed.errors?.length ? ` · ${pushed.errors[0].slice(0,70)}` : '';
-      toast(`Inbox: ${pushedMsg}${failedMsg}${r.added > 0 ? `+${r.added} new · ` : ''}${r.removed > 0 ? `-${r.removed} moved · ` : ''}${r.total} total${errorMsg}`);
+    if (r.error){
+      toast('Inbox refresh failed: ' + (r.error || '').slice(0,120));
+    } else {
+      const parts = [];
+      if (r.pushed) parts.push(`↑${r.pushed} pushed`);
+      if (r.failed) parts.push(`⚠${r.failed} still pending${r.pushError ? ': '+r.pushError.slice(0,70):''}`);
+      if (r.added)  parts.push(`+${r.added} new`);
+      if (r.removed) parts.push(`-${r.removed} moved`);
+      parts.push(`${r.total} total`);
+      toast(`Inbox: ${parts.join(' · ')}`);
     }
     if (Vault.state.ui.activeView === 'inbox') render();
   };
@@ -4417,6 +4513,105 @@ function boot(){
   // expose for debugging
   window.Vault = Vault; window.LinkResolver = LinkResolver; window.GraphProjection = GraphProjection; window.MockLLM = MockLLM;
 }
+
+/* ============================================================
+   v5.2 Shared Inbox diagnostic — paste-into-console fault report.
+   Usage in DevTools console:    await diagnoseInbox()
+   Returns a structured object + prints a human report. Safe to run anywhere.
+============================================================ */
+window.diagnoseInbox = async function diagnoseInbox(){
+  const report = { ts: new Date().toISOString(), steps: [], summary: '' };
+  let hadFailure = false;
+  const step = (name, ok, detail) => {
+    if (!ok) hadFailure = true;
+    report.steps.push({ name, ok, detail });
+    console.log(`[diag] ${ok?'✓':'✗'} ${name} — ${detail || ''}`);
+  };
+
+  // 1. Config
+  const cfg = GitHubSync.config || {};
+  const cfgFields = {
+    owner: cfg.owner || '(empty)',
+    repo: cfg.repo || '(empty)',
+    branch: cfg.branch || '(empty)',
+    path: cfg.path || '(empty)',
+    inboxFolder: cfg.inboxFolder || '(empty)',
+    tokenSet: !!cfg.token
+  };
+  step('GitHubSync.configured', GitHubSync.configured(), JSON.stringify(cfgFields));
+  step('GitHubInboxAdapter.configured', GitHubInboxAdapter.configured(), '');
+  if (!GitHubSync.configured()){
+    report.summary = 'GitHub not configured in this browser. Open ⚙ Settings → fill owner/repo/branch/token, then re-run diagnoseInbox().';
+    console.warn('[diag] HALT — '+report.summary); return report;
+  }
+
+  // 2. Repo reachable?
+  const repoUrl = `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`;
+  try {
+    const res = await fetch(repoUrl, { headers: GitHubSync.headers() });
+    const body = res.ok ? await res.json() : await res.text();
+    step('GET /repos/{owner}/{repo}', res.ok, `status=${res.status} ${res.ok?`default_branch=${body.default_branch} private=${body.private}`:body.slice(0,200)}`);
+    if (!res.ok){ report.summary = `Repo not reachable: ${res.status}. Check owner/repo/PAT scope.`; return report; }
+    if (body.default_branch && body.default_branch !== cfg.branch){
+      console.warn(`[diag] ⚠ Branch mismatch — config says "${cfg.branch}", repo default is "${body.default_branch}". This is likely the bug.`);
+    }
+  } catch(e){ step('GET /repos', false, 'network: '+e.message); report.summary = 'Network failure reaching api.github.com'; return report; }
+
+  // 3. Branch reachable?
+  try {
+    const res = await fetch(`${repoUrl}/branches/${encodeURIComponent(cfg.branch)}`, { headers: GitHubSync.headers() });
+    step(`GET /branches/${cfg.branch}`, res.ok, `status=${res.status}`);
+    if (!res.ok){ report.summary = `Branch "${cfg.branch}" not found. Fix in ⚙ Settings.`; return report; }
+  } catch(e){ step(`GET /branches`, false, 'network: '+e.message); }
+
+  // 4. Token scope test — PUT a dummy file
+  // Use the production cap-* filename shape so listFolder() exercises the exact same filter path.
+  const testId = `cap-diag-${Date.now().toString(36)}`;
+  const dummy = { capture_id: testId, schema_version: 1, device_id: Vault.state.device_id, captured_at: new Date().toISOString(), input_type:'text', raw_input:'diagnostic write — safe to delete', source_url:'', source_hint:null, user_note:'', input_hash:'diag', claimed_by:null, claimed_at:null, processed_at:null, draft_refs:[], discard_reason:null };
+  const putRes = await GitHubInboxAdapter.putFile('captured', testId, dummy);
+  step('PUT inbox/captured/cap-diag-*.json', putRes.ok, `status=${putRes.status} ${putRes.error || 'sha='+(putRes.sha||'').slice(0,7)}`);
+  if (!putRes.ok){
+    report.summary = `Write failed: ${putRes.error}. ${putRes.status===403?'Likely: PAT lacks "contents:write" scope on the repo.':''}${putRes.status===404?'Likely: owner/repo/branch wrong.':''}${putRes.status===422?'Likely: branch missing or malformed body.':''}`;
+    return report;
+  }
+
+  // 5. Read it back
+  try {
+    const got = await GitHubInboxAdapter.getFile('captured', testId);
+    step('GET inbox/captured/cap-diag-*.json', !!got, got ? `sha=${got.sha.slice(0,7)}` : 'null');
+  } catch(e){ step('GET diag file', false, e.message); }
+
+  // 6. List the folder
+  try {
+    const ls = await GitHubInboxAdapter.listFolder('captured', null);
+    step('LIST inbox/captured/', !ls.unchanged, `files=${ls.files.length} etag=${(ls.etag||'').slice(0,12)}`);
+  } catch(e){ step('LIST captured/', false, e.message); }
+
+  // 7. Cleanup — delete the diag file. Use putRes.sha to avoid an extra GET.
+  try {
+    const del = await GitHubInboxAdapter.deleteFile('captured', testId, putRes.sha);
+    step('DELETE inbox/captured/cap-diag-*.json', del.ok, del.ok?'cleaned':JSON.stringify(del));
+  } catch(e){ step('DELETE diag file', false, e.message); }
+
+  // 8. Local cache state
+  const cache = LocalInboxCache.data || {};
+  step('LocalInboxCache', true, `items=${Object.keys(cache.items||{}).length} pending_push=${(cache.pending_push||[]).length} last_refresh=${cache.last_refresh||'(never)'}`);
+
+  // 9. Pending push items (per-item errors)
+  (cache.pending_push || []).forEach(id => {
+    const it = (cache.items||{})[id];
+    if (it) step(`pending push ${id}`, false, it._last_push_error || '(no error recorded yet)');
+  });
+
+  // 10. Last push report
+  step('last push attempt', SharedInbox._lastPush?.ok !== false, JSON.stringify(SharedInbox._lastPush || {}));
+
+  report.summary = hadFailure
+    ? `FAILED — one or more diagnostic steps failed. Review the ✗ lines above; if DELETE failed, remove the leftover ${testId}.json file from ${cfg.inboxFolder || 'inbox'}/captured/.`
+    : `OK — full round trip succeeded. If your captures still don't show on the other device: that other browser has different config in localStorage. Run diagnoseInbox() there too.`;
+  console.log('[diag] '+report.summary);
+  return report;
+};
 
 boot();
 </script>
