@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 4,
+  "pages": [
+    {
+      "id": "welcome",
+      "title": "Welcome",
+      "type": "index",
+      "tags": [
+        "meta"
+      ],
+      "sources": [],
+      "status": "curated",
+      "md": "# Welcome\n\nThis vault uses the Karpathy LLM-wiki method.\n\n## Three operations\n\n- **Ingest** — paste a URL or text. The LLM reads it, creates a Source page, drafts updates to related pages, and appends to [[log]].\n- **Query** — ask a question. The LLM reads relevant pages and answers with citations. Save useful answers as synthesis pages.\n- **Lint** — periodic audit for orphans, broken links, missing tags.\n\n## Anchor pages\n\n- [[index]] — auto-generated catalog of all pages\n- [[log]] — append-only ingest and query history\n\n## Try\n\n1. Click **⊕ Ingest** in the top bar. Paste any text. See drafts appear.\n2. Click **? Query**. Ask \"what is in this vault?\".\n3. Open [[Karpathy LLM Wiki]] to see the method.",
+      "updated": "2026-05-07",
+      "review_state": "reviewed"
+    },
+    {
+      "id": "karpathy-llm-wiki",
+      "title": "Karpathy LLM Wiki",
+      "type": "source",
+      "tags": [
+        "meta",
+        "method"
+      ],
+      "sources": [
+        "src-karpathy-gist"
+      ],
+      "status": "curated",
+      "md": "# Karpathy LLM Wiki\n\n## Summary\n\nA second-brain pattern where the wiki is a directory of LLM-generated markdown files. Knowledge is compiled once and kept current.\n\n## Three layers\n\n- **Raw sources** — immutable input (articles, PDFs, transcripts)\n- **Wiki** — markdown files: entity, concept, source, synthesis pages\n- **Schema** — config that drives the LLM (this vault uses frontmatter + an internal prompt)\n\n## Three operations\n\n- **Ingest** — read source, update 10–15 pages with summaries and cross-references\n- **Query** — answer questions with citations\n- **Lint** — audit for contradictions, orphans, gaps\n\n## Two anchors\n\n- [[index]] — catalog\n- [[log]] — chronological record\n\n## Why flat\n\nFolders force premature classification. Tags + wikilinks let the graph emerge.",
+      "updated": "2026-05-07",
+      "review_state": "raw"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src-karpathy-llm-wiki-gist",
+      "title": "Karpathy LLM-wiki gist",
+      "url": "https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f",
+      "raw": "",
+      "summary": "Three-layer LLM-maintained wiki pattern.",
+      "type": "url",
+      "ingested": "2026-05-07T03:45:45.755Z"
+    }
+  ],
+  "drafts": [],
+  "log": [
+    {
+      "ts": "2026-05-07T03:45:45.755Z",
+      "op": "init",
+      "summary": "Vault initialized with seed pages."
+    }
+  ],
+  "ui": {
+    "selectedPageId": "welcome",
+    "activeView": "inbox",
+    "collapsedFolders": {},
+    "activeTag": "meta"
+  },
+  "batches": [],
+  "contextPacks": {},
+  "tempItems": [],
+  "ingestDrafts": [],
+  "ingestLog": [],
+  "backups": [],
+  "sync": {
+    "last_synced_remote_sha": null,
+    "last_synced_at": null,
+    "sync_status": "unknown"
+  },
+  "revision": 0,
+  "device_id": "pc-87jukut0",
+  "inbox": {
+    "last_etag": null,
+    "last_refresh": null,
+    "last_seen_ids": []
+  }
+}
