@@ -39,22 +39,67 @@
       "raw": "",
       "summary": "Three-layer LLM-maintained wiki pattern.",
       "type": "url",
-      "ingested": "2026-05-07T03:45:45.755Z"
+      "ingested": "2026-05-06T09:31:08.626Z"
     }
   ],
-  "drafts": [],
+  "drafts": [
+    {
+      "id": "d-1778059931351-5380",
+      "kind": "lint-missing-summary",
+      "target": "welcome",
+      "content": "Lint issue on [[Welcome]]: no ## Summary section",
+      "reasoning": "Linter found: missing-summary",
+      "created": "2026-05-06T09:32:11.351Z"
+    },
+    {
+      "id": "d-1778489024077-4884",
+      "kind": "lint-missing-summary",
+      "target": "welcome",
+      "content": "Lint issue on [[Welcome]]: no ## Summary section",
+      "reasoning": "Linter found: missing-summary",
+      "created": "2026-05-11T08:43:44.077Z"
+    },
+    {
+      "id": "d-1778489083631-2991",
+      "kind": "lint-missing-summary",
+      "target": "welcome",
+      "content": "Lint issue on [[Welcome]]: no ## Summary section",
+      "reasoning": "Linter found: missing-summary",
+      "created": "2026-05-11T08:44:43.631Z"
+    }
+  ],
   "log": [
+    {
+      "ts": "2026-05-06T09:31:08.626Z",
+      "op": "init",
+      "summary": "Vault initialized with seed pages."
+    },
+    {
+      "ts": "2026-05-06T09:32:11.352Z",
+      "op": "lint",
+      "summary": "1 issue → drafts"
+    },
     {
       "ts": "2026-05-07T03:45:45.755Z",
       "op": "init",
       "summary": "Vault initialized with seed pages."
+    },
+    {
+      "ts": "2026-05-11T08:43:44.079Z",
+      "op": "lint",
+      "summary": "1 issue → drafts"
+    },
+    {
+      "ts": "2026-05-11T08:44:43.631Z",
+      "op": "lint",
+      "summary": "1 issue → drafts"
     }
   ],
   "ui": {
-    "selectedPageId": "welcome",
+    "selectedPageId": "karpathy-llm-wiki",
     "activeView": "inbox",
     "collapsedFolders": {},
-    "activeTag": "meta"
+    "editing": false
   },
   "batches": [],
   "contextPacks": {},
@@ -68,10 +113,10 @@
     "sync_status": "unknown"
   },
   "revision": 0,
-  "device_id": "pc-87jukut0",
+  "device_id": "mac-3ftipo4z",
   "inbox": {
     "last_etag": null,
-    "last_refresh": "2026-05-12T16:03:40.072Z",
+    "last_refresh": null,
     "last_seen_ids": []
   }
 }
