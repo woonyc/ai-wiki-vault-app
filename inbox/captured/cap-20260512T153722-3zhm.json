@@ -1,0 +1,17 @@
+{
+  "capture_id": "cap-20260512T153722-3zhm",
+  "schema_version": 1,
+  "device_id": "pc-87jukut0",
+  "captured_at": "2026-05-12T15:37:22.060Z",
+  "input_type": "url",
+  "raw_input": "https://x.com/TheOneLanceB/status/2053869027429404879?s=20",
+  "source_url": "https://x.com/TheOneLanceB/status/2053869027429404879?s=20",
+  "source_hint": "",
+  "user_note": "Lance Top Opps",
+  "input_hash": "1ltgkko",
+  "claimed_by": null,
+  "claimed_at": null,
+  "processed_at": null,
+  "draft_refs": [],
+  "discard_reason": null
+}
