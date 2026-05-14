@@ -9,9 +9,11 @@
   "source_hint": "",
   "user_note": "Lance Top Opps \"Trading\"",
   "input_hash": "1ltgkko",
-  "claimed_by": null,
-  "claimed_at": null,
-  "processed_at": "2026-05-14T00:00:00Z",
-  "draft_refs": [],
-  "discard_reason": "Routed to finance raw source note in Obsidian vault instead of AI Wiki Vault canonical pages."
+  "claimed_by": "hermes-mac-mini-2026",
+  "claimed_at": "2026-05-14T02:16:43Z",
+  "processed_at": "2026-05-14T02:16:43Z",
+  "draft_refs": [
+    "2026-05-14-theonelanceb-april-26-top-opps"
+  ],
+  "discard_reason": null
 }
