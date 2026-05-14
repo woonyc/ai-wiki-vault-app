@@ -1751,6 +1751,38 @@ const IngestPipeline = {
     return { ok:true, draft: d };
   },
 
+  _reconcileTempItemAfterDraftUpdate(tempItemId){
+    const t = Vault.getTempItem(tempItemId);
+    if (!t) return { ok:true, pending:false, tempItem:null, drafts:[] };
+    const allDrafts = (t.normalized_item_ids || []).map(id => Vault.getIngestDraft(id)).filter(Boolean);
+    if (!allDrafts.length) return { ok:true, pending:false, tempItem:t, drafts:[] };
+    const allDone = allDrafts.every(x => ['committed_local','archived','discarded'].includes(x.status));
+    if (!allDone) return { ok:true, pending:true, tempItem:t, drafts:allDrafts };
+    return { ok:true, pending:false, tempItem:t, drafts:allDrafts };
+  },
+
+  async _finalizeSharedCaptureIfReady(tempItemId){
+    const state = this._reconcileTempItemAfterDraftUpdate(tempItemId);
+    if (!state.ok || state.pending || !state.tempItem) return state;
+    const t = state.tempItem;
+    const drafts = state.drafts;
+    const sharedCaptureId = drafts.find(d => d.shared_capture_id)?.shared_capture_id || t._shared_capture_id || null;
+    if (sharedCaptureId){
+      const committedDrafts = drafts.filter(d => d.status === 'committed_local');
+      let remote;
+      if (committedDrafts.length){
+        const draftRefs = [...new Set(committedDrafts.flatMap(d => d.committed_page_refs || []).filter(Boolean))];
+        remote = await SharedInbox.process(sharedCaptureId, { draft_refs: draftRefs });
+      } else {
+        remote = await SharedInbox.discard(sharedCaptureId, 'All prepared drafts were archived or discarded before commit.');
+      }
+      if (!remote.ok) return { ok:false, pending:false, reason: remote.reason || 'shared inbox finalize failed', remote };
+    }
+    if (t._shared_inbox_transient) Vault.removeTempItem(t.id);
+    else Vault.updateTempItem(t.id, { status: 'archived' });
+    return { ok:true, pending:false, tempItem:t, drafts };
+  },
+
   /* ---------- Step 4-5: Commit approved draft to vault ----------
      Brief §Step 5 — backup snapshot before mutation. */
   async commit(draftId, action='commit'){
@@ -1796,21 +1828,10 @@ const IngestPipeline = {
       Vault._currentBatchId = null;
 
       // State transitions
-      Vault.updateIngestDraft(d.id, { status:'committed_local' });
-      const t = Vault.getTempItem(d.temp_item_id);
-      if (t){
-        const allDrafts = (t.normalized_item_ids || []).map(id => Vault.getIngestDraft(id)).filter(Boolean);
-        const allDone = allDrafts.every(x => ['committed_local','archived','discarded'].includes(x.status));
-        if (allDone) Vault.updateTempItem(t.id, { status: 'archived' });
-      }
-      // v5.2 — if this draft originated from a shared-inbox capture, move the file to processed/
-      if (d.shared_capture_id){
-        try {
-          const refs = result.sourcePage?.id ? [result.sourcePage.id] : [];
-          const r = await SharedInbox.process(d.shared_capture_id, { draft_refs: refs });
-          if (!r.ok) console.warn('SharedInbox.process failed:', r.reason);
-        } catch(e){ console.warn('SharedInbox.process threw:', e.message); }
-      }
+      const refs = result.sourcePage?.id ? [result.sourcePage.id] : [];
+      Vault.updateIngestDraft(d.id, { status:'committed_local', committed_page_refs: refs });
+      const finalizeState = await this._finalizeSharedCaptureIfReady(d.temp_item_id);
+      if (!finalizeState.ok) console.warn('Shared capture finalize failed:', finalizeState.reason);
       Vault.bumpRevision();
       Vault.appendIngestLog(IngestLogEntry.create({ draftId: d.id, op:'commit', from:'needs_review', to:'committed_local', detail: action }));
       Vault.appendLog(LogEntry.create({ op:'ingest', summary: `Committed [[${result.sourcePage?.title || d.cleaned_title}]]${d.review_required?' (review required)':''} via ${action}` }));
@@ -1825,15 +1846,21 @@ const IngestPipeline = {
     }
   },
 
-  archiveDraft(id){
-    const d = Vault.getIngestDraft(id); if (!d) return;
+  async archiveDraft(id){
+    const d = Vault.getIngestDraft(id); if (!d) return { ok:false, reason:'draft not found' };
     Vault.updateIngestDraft(id, { status:'archived' });
     Vault.appendIngestLog(IngestLogEntry.create({ draftId: id, op:'archive', from: d.status, to:'archived' }));
+    const finalizeState = await this._finalizeSharedCaptureIfReady(d.temp_item_id);
+    if (!finalizeState.ok) return finalizeState;
+    return { ok:true };
   },
-  discardDraft(id){
-    const d = Vault.getIngestDraft(id); if (!d) return;
+  async discardDraft(id){
+    const d = Vault.getIngestDraft(id); if (!d) return { ok:false, reason:'draft not found' };
     Vault.updateIngestDraft(id, { status:'discarded' });
     Vault.appendIngestLog(IngestLogEntry.create({ draftId: id, op:'discard', from: d.status, to:'discarded' }));
+    const finalizeState = await this._finalizeSharedCaptureIfReady(d.temp_item_id);
+    if (!finalizeState.ok) return finalizeState;
+    return { ok:true };
   }
 };
 
@@ -2581,8 +2608,9 @@ function renderInboxView(){
   const sharedCaptured = SharedInbox.list('captured');
   const sharedClaimed = SharedInbox.list('claimed');
   const pendingPushIds = (LocalInboxCache.data?.pending_push || []);
-  const legacyLocal = Vault.listTempItems().filter(t => t.status === 'captured');  // v5.1 local-only items
-  const legacyArchived = Vault.listTempItems().filter(t => t.status === 'archived' || t.status === 'discarded');
+  const visibleLegacyItems = Vault.listTempItems().filter(t => !t._shared_inbox_transient);
+  const legacyLocal = visibleLegacyItems.filter(t => t.status === 'captured');  // v5.1 local-only items
+  const legacyArchived = visibleLegacyItems.filter(t => t.status === 'archived' || t.status === 'discarded');
 
   const totalCaptured = sharedCaptured.length;
   const totalClaimed = sharedClaimed.length;
@@ -2749,6 +2777,8 @@ async function claimAndPrepareSharedInbox(captureId){
   // Push the raw_input through the v5.1 normalizer using a transient tempItem.
   // The temp item is used only to bootstrap normalize() — we route drafts back to capture_id.
   const transient = TempItem.create({ raw_input: it.raw_input, user_note: it.user_note || '', source_hint: it.source_hint || '' });
+  transient._shared_inbox_transient = true;
+  transient._shared_capture_id = captureId;
   Vault.state.tempItems.push(transient); Vault.persist();
   const r = IngestPipeline.normalize(transient.id);
   if (!r.ok) return { ok:false, reason: r.reason };
@@ -2785,8 +2815,18 @@ function renderReviewView(){
     if (r.ok){ toast(`✓ Committed (action: ${action})`); render(); }
     else { toast(`Commit failed: ${r.reason}`); b.disabled = false; render(); }
   });
-  $$('[data-archive]').forEach(b => b.onclick = () => { IngestPipeline.archiveDraft(b.dataset.archive); render(); toast('Archived'); });
-  $$('[data-discard]').forEach(b => b.onclick = () => { IngestPipeline.discardDraft(b.dataset.discard); render(); toast('Discarded'); });
+  $$('[data-archive]').forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = '…';
+    const r = await IngestPipeline.archiveDraft(b.dataset.archive);
+    if (r?.ok){ render(); toast('Archived'); }
+    else { toast(`Archive failed: ${r?.reason || 'unknown error'}`); b.disabled = false; render(); }
+  });
+  $$('[data-discard]').forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = '…';
+    const r = await IngestPipeline.discardDraft(b.dataset.discard);
+    if (r?.ok){ render(); toast('Discarded'); }
+    else { toast(`Discard failed: ${r?.reason || 'unknown error'}`); b.disabled = false; render(); }
+  });
   $$('[data-mark-review]').forEach(b => b.onclick = () => {
     const d = Vault.getIngestDraft(b.dataset.markReview);
     if (d){ Vault.updateIngestDraft(d.id, { status: d.status === 'needs_review' ? 'draft_ready' : 'needs_review' }); render(); }
