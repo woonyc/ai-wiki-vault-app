@@ -39,18 +39,144 @@
         "trading",
         "x-post",
         "semis",
-        "car"
+        "car",
+        "watchlist",
+        "oil"
       ],
       "sources": [
         "src-2026-05-14-theonelanceb-april-26-top-opps"
       ],
       "status": "quarantined",
-      "md": "# 2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS\n\n## Summary\n\nLance Breitstein recaps his April 2026 top opportunities, highlighting oil, CAR, and semiconductor breakouts while listing several tickers and dates.\n\n## Source\n\n<https://x.com/TheOneLanceB/status/2053869027429404879>\n\n## Body\n\nAPRIL ‘26 TOP OPPS\n\nAnother really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis. $CAR and swing longs in semis were best IMO. As always these opportunities are dissected in detail as part of my course.\n\n$USO\n$CAR\nSemis\n4/2 $SBAC\n4/6 $UNH\n4/22 $FLYYQ\n4/23 $SKLZ\n4/27 $POET\n\n## Notes\n\n- Captured through the Shared Inbox and sorted by Hermes into a finance-trading quarantine page.\n- This item was re-processed into the AI Wiki Vault after an earlier mistaken discard, per user correction.\n- Review required before promoting any claim into durable concepts or workflows.\n- Original user note: Lance Top Opps \"Trading\"\n\n## Provenance\n\n- captured: 2026-05-14T02:05:12.113Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-14T02:16:43Z\n- capture id: cap-20260514T020512-wprr\n- tickers: $USO, $CAR, $SBAC, $UNH, $FLYYQ, $SKLZ, $POET\n- review required: finance keywords/tickers detected; retrospective trading commentary\n",
+      "md": "# 2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS\n\n## Summary\n\nLance Breitstein recaps his April 2026 top opportunities, highlighting oil, CAR, and semiconductor breakouts while listing several tickers and dates.\n\n## Source\n\n<https://x.com/TheOneLanceB/status/2053869027429404879>\n\n## Body\n\nAPRIL ‘26 TOP OPPS\n\nAnother really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis. $CAR and swing longs in semis were best IMO. As always these opportunities are dissected in detail as part of my course.\n\n$USO\n$CAR\nSemis\n4/2 $SBAC\n4/6 $UNH\n4/22 $FLYYQ\n4/23 $SKLZ\n4/27 $POET\n\n## Extracted claims\n\n- [[April 2026 opportunities centered on oil, CAR, and semiconductor breakouts]]\n- [[CAR and semi swing longs were the author's best opportunities in April 2026]]\n- [[The post lists a dated watchlist of SBAC, UNH, FLYYQ, SKLZ, and POET]]\n- [[The post also functions as course promotion]]\n\n## Promotion notes\n\n- Promoted from a raw clip into extracted finance-trading claims for easier future retrieval.\n- Durable promotion is still blocked until the claims are independently reviewed.\n- This source remains the canonical raw evidence page.\n\n## Notes\n\n- Captured through the Shared Inbox and sorted by Hermes into a finance-trading quarantine page.\n- This item was re-processed into the AI Wiki Vault after an earlier mistaken discard, per user correction.\n- Review required before promoting any claim into durable concepts or workflows.\n- Original user note: Lance Top Opps \"Trading\"\n\n## Provenance\n\n- captured: 2026-05-14T02:05:12.113Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-14T02:16:43Z\n- capture id: cap-20260514T020512-wprr\n- tickers: $USO, $CAR, $SBAC, $UNH, $FLYYQ, $SKLZ, $POET\n- review required: finance keywords/tickers detected; retrospective trading commentary\n",
       "updated": "2026-05-14",
       "review_state": "raw",
       "specialist": "finance-trading",
       "review_required": true,
       "batch": "b-20260514-wprr"
+    },
+    {
+      "id": "april-2026-opportunities-centered-on-oil-car-and-semis-breakouts",
+      "title": "April 2026 opportunities centered on oil, CAR, and semiconductor breakouts",
+      "type": "claim",
+      "tags": [
+        "finance-trading",
+        "claim",
+        "oil",
+        "car",
+        "semis",
+        "x-post"
+      ],
+      "sources": [
+        "src-2026-05-14-theonelanceb-april-26-top-opps"
+      ],
+      "status": "quarantined",
+      "md": "# April 2026 opportunities centered on oil, CAR, and semiconductor breakouts\n\n## Claim\n\nThe post frames the month's main opportunities as coming from oil, $CAR, and all-time-high semiconductor breakouts.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"Another really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- This is a source-backed extracted claim, not a verified trading truth.\n- Use as a watchlist/research pointer only until independently checked.\n",
+      "updated": "2026-05-14",
+      "review_state": "extracted",
+      "specialist": "finance-trading",
+      "confidence": "medium",
+      "review_required": true,
+      "claim_type": "historical_price_action",
+      "source_url": "https://x.com/TheOneLanceB/status/2053869027429404879",
+      "captured_date": "2026-05-14",
+      "provenance_snippet": "Another really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis.",
+      "ticker_map": [
+        "USO",
+        "CAR"
+      ],
+      "freshness": "historical-monthly-recap"
+    },
+    {
+      "id": "car-and-semi-swing-longs-were-the-authors-best-opportunities-in-april-2026",
+      "title": "CAR and semi swing longs were the author's best opportunities in April 2026",
+      "type": "claim",
+      "tags": [
+        "finance-trading",
+        "claim",
+        "car",
+        "semis",
+        "x-post",
+        "opinion"
+      ],
+      "sources": [
+        "src-2026-05-14-theonelanceb-april-26-top-opps"
+      ],
+      "status": "quarantined",
+      "md": "# CAR and semi swing longs were the author's best opportunities in April 2026\n\n## Claim\n\nThe author says $CAR and swing longs in semis were the best opportunities of the month.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"$CAR and swing longs in semis were best IMO.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- Opinionated performance ranking from the source author.\n- Requires external validation before reuse in a playbook or promoted concept.\n",
+      "updated": "2026-05-14",
+      "review_state": "extracted",
+      "specialist": "finance-trading",
+      "confidence": "low",
+      "review_required": true,
+      "claim_type": "opinion",
+      "source_url": "https://x.com/TheOneLanceB/status/2053869027429404879",
+      "captured_date": "2026-05-14",
+      "provenance_snippet": "$CAR and swing longs in semis were best IMO.",
+      "ticker_map": [
+        "CAR"
+      ],
+      "freshness": "historical-monthly-recap"
+    },
+    {
+      "id": "the-post-lists-a-dated-watchlist-of-sbac-unh-flyyq-sklz-and-poet",
+      "title": "The post lists a dated watchlist of SBAC, UNH, FLYYQ, SKLZ, and POET",
+      "type": "claim",
+      "tags": [
+        "finance-trading",
+        "claim",
+        "watchlist",
+        "tickers",
+        "x-post"
+      ],
+      "sources": [
+        "src-2026-05-14-theonelanceb-april-26-top-opps"
+      ],
+      "status": "quarantined",
+      "md": "# The post lists a dated watchlist of SBAC, UNH, FLYYQ, SKLZ, and POET\n\n## Claim\n\nThe source enumerates a dated list of tickers: 4/2 $SBAC, 4/6 $UNH, 4/22 $FLYYQ, 4/23 $SKLZ, and 4/27 $POET.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"4/2 $SBAC  4/6 $UNH  4/22 $FLYYQ  4/23 $SKLZ  4/27 $POET\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- Treat as a dated reference list, not as a live thesis.\n- Freshness decays quickly because the post is retrospective and ticker-specific.\n",
+      "updated": "2026-05-14",
+      "review_state": "extracted",
+      "specialist": "finance-trading",
+      "confidence": "medium",
+      "review_required": true,
+      "claim_type": "historical_price_action",
+      "source_url": "https://x.com/TheOneLanceB/status/2053869027429404879",
+      "captured_date": "2026-05-14",
+      "provenance_snippet": "4/2 $SBAC\n4/6 $UNH\n4/22 $FLYYQ\n4/23 $SKLZ\n4/27 $POET",
+      "ticker_map": [
+        "SBAC",
+        "UNH",
+        "FLYYQ",
+        "SKLZ",
+        "POET"
+      ],
+      "freshness": "dated-watchlist"
+    },
+    {
+      "id": "the-post-also-functions-as-course-promotion",
+      "title": "The post also functions as course promotion",
+      "type": "claim",
+      "tags": [
+        "finance-trading",
+        "claim",
+        "promotion",
+        "x-post"
+      ],
+      "sources": [
+        "src-2026-05-14-theonelanceb-april-26-top-opps"
+      ],
+      "status": "quarantined",
+      "md": "# The post also functions as course promotion\n\n## Claim\n\nThe author says the opportunities are dissected in detail as part of his course, so the post doubles as promotional content.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"As always these opportunities are dissected in detail as part of my course.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- This helps frame possible incentives and tone in the source.\n- Keep in mind when deciding whether any claim should be promoted further.\n",
+      "updated": "2026-05-14",
+      "review_state": "extracted",
+      "specialist": "finance-trading",
+      "confidence": "high",
+      "review_required": true,
+      "claim_type": "promotional",
+      "source_url": "https://x.com/TheOneLanceB/status/2053869027429404879",
+      "captured_date": "2026-05-14",
+      "provenance_snippet": "As always these opportunities are dissected in detail as part of my course.",
+      "ticker_map": [],
+      "freshness": "contextual"
     }
   ],
   "sources": [
@@ -129,6 +255,11 @@
       "ts": "2026-05-14T02:16:43Z",
       "op": "ingest",
       "summary": "Committed [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]] (review required) via dated_source_only [Hermes shared inbox]"
+    },
+    {
+      "ts": "2026-05-14T02:29:08Z",
+      "op": "promote",
+      "summary": "Promoted [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]] into extracted finance-trading claims [Hermes]"
     }
   ],
   "ui": {
@@ -149,6 +280,23 @@
         "2026-05-14-theonelanceb-april-26-top-opps"
       ],
       "updated": []
+    },
+    {
+      "id": "b-20260514-wprr-promote",
+      "ts": "2026-05-14T02:29:08Z",
+      "op": "promote",
+      "sourceId": "src-2026-05-14-theonelanceb-april-26-top-opps",
+      "sourceTitle": "2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS",
+      "provider": "hermes-manual-promotion",
+      "created": [
+        "april-2026-opportunities-centered-on-oil-car-and-semis-breakouts",
+        "car-and-semi-swing-longs-were-the-authors-best-opportunities-in-april-2026",
+        "the-post-lists-a-dated-watchlist-of-sbac-unh-flyyq-sklz-and-poet",
+        "the-post-also-functions-as-course-promotion"
+      ],
+      "updated": [
+        "2026-05-14-theonelanceb-april-26-top-opps"
+      ]
     }
   ],
   "contextPacks": {},
