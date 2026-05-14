@@ -11,7 +11,7 @@
   "input_hash": "1ltgkko",
   "claimed_by": null,
   "claimed_at": null,
-  "processed_at": null,
+  "processed_at": "2026-05-14T00:00:00Z",
   "draft_refs": [],
-  "discard_reason": null
+  "discard_reason": "Routed to finance raw source note in Obsidian vault instead of AI Wiki Vault canonical pages."
 }
