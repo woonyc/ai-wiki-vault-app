@@ -1,0 +1,17 @@
+{
+  "capture_id": "cap-20260516T030507-fdql",
+  "schema_version": 1,
+  "device_id": "pc-87jukut0",
+  "captured_at": "2026-05-16T03:05:07.673Z",
+  "input_type": "url",
+  "raw_input": "https://x.com/StockMKTNewz/status/2055373732474953908?s=20",
+  "source_url": "https://x.com/StockMKTNewz/status/2055373732474953908?s=20",
+  "source_hint": "",
+  "user_note": "Stanley Druckenmiller Q1 portfolio",
+  "input_hash": "gpvipd",
+  "claimed_by": null,
+  "claimed_at": null,
+  "processed_at": null,
+  "draft_refs": [],
+  "discard_reason": null
+}
