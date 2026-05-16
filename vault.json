@@ -187,7 +187,7 @@
       "raw": "",
       "summary": "Three-layer LLM-maintained wiki pattern.",
       "type": "url",
-      "ingested": "2026-05-06T13:00:21.737Z"
+      "ingested": "2026-05-06T09:31:08.626Z"
     },
     {
       "id": "src-2026-05-14-theonelanceb-april-26-top-opps",
@@ -278,11 +278,10 @@
     }
   ],
   "ui": {
-    "selectedPageId": "welcome",
-    "activeView": "graph",
+    "selectedPageId": "2026-05-14-theonelanceb-april-26-top-opps",
+    "activeView": "inbox",
     "collapsedFolders": {},
-    "editing": false,
-    "activeTag": "meta"
+    "editing": false
   },
   "batches": [
     {
@@ -321,15 +320,15 @@
   "ingestLog": [],
   "backups": [],
   "sync": {
-    "last_synced_remote_sha": null,
-    "last_synced_at": null,
-    "sync_status": "pending"
+    "last_synced_remote_sha": "4f7220009e5944899d42252cef5612f8baf89f06",
+    "last_synced_at": "2026-05-14T02:22:00.540Z",
+    "sync_status": "synced"
   },
   "revision": 1,
-  "device_id": "pc-3jdpipnb",
+  "device_id": "mac-3ftipo4z",
   "inbox": {
     "last_etag": null,
-    "last_refresh": null,
+    "last_refresh": "2026-05-16T03:25:53.198Z",
     "last_seen_ids": []
   }
 }
