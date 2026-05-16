@@ -9,9 +9,11 @@
   "source_hint": "",
   "user_note": "$NVDA  13F Holdings",
   "input_hash": "180fgc",
-  "claimed_by": null,
-  "claimed_at": null,
-  "processed_at": null,
-  "draft_refs": [],
+  "claimed_by": "hermes-mac-mini-2026",
+  "claimed_at": "2026-05-16T03:48:36Z",
+  "processed_at": "2026-05-16T03:48:36Z",
+  "draft_refs": [
+    "2026-05-15-wallstengine-nvda-13f-holdings"
+  ],
   "discard_reason": null
 }

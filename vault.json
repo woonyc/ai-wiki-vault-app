@@ -2,19 +2,6 @@
   "schemaVersion": 4,
   "pages": [
     {
-      "id": "welcome",
-      "title": "Welcome",
-      "type": "index",
-      "tags": [
-        "meta"
-      ],
-      "sources": [],
-      "status": "curated",
-      "md": "# Welcome\n\nThis vault uses the Karpathy LLM-wiki method.\n\n## Three operations\n\n- **Ingest** — paste a URL or text. The LLM reads it, creates a Source page, drafts updates to related pages, and appends to [[log]].\n- **Query** — ask a question. The LLM reads relevant pages and answers with citations. Save useful answers as synthesis pages.\n- **Lint** — periodic audit for orphans, broken links, missing tags.\n\n## Anchor pages\n\n- [[index]] — auto-generated catalog of all pages\n- [[log]] — append-only ingest and query history\n\n## Try\n\n1. Click **⊕ Ingest** in the top bar. Paste any text. See drafts appear.\n2. Click **? Query**. Ask \"what is in this vault?\".\n3. Open [[Karpathy LLM Wiki]] to see the method.",
-      "updated": "2026-05-07",
-      "review_state": "reviewed"
-    },
-    {
       "id": "karpathy-llm-wiki",
       "title": "Karpathy LLM Wiki",
       "type": "source",
@@ -26,13 +13,26 @@
         "src-karpathy-gist"
       ],
       "status": "curated",
-      "md": "# Karpathy LLM Wiki\n\n## Summary\n\nA second-brain pattern where the wiki is a directory of LLM-generated markdown files. Knowledge is compiled once and kept current.\n\n## Three layers\n\n- **Raw sources** — immutable input (articles, PDFs, transcripts)\n- **Wiki** — markdown files: entity, concept, source, synthesis pages\n- **Schema** — config that drives the LLM (this vault uses frontmatter + an internal prompt)\n\n## Three operations\n\n- **Ingest** — read source, update 10–15 pages with summaries and cross-references\n- **Query** — answer questions with citations\n- **Lint** — audit for contradictions, orphans, gaps\n\n## Two anchors\n\n- [[index]] — catalog\n- [[log]] — chronological record\n\n## Why flat\n\nFolders force premature classification. Tags + wikilinks let the graph emerge.",
+      "md": "# Karpathy LLM Wiki\n\n## Summary\n\nA second-brain pattern where the wiki is a directory of LLM-generated markdown files. Knowledge is compiled once and kept current.\n\n## Three layers\n\n- **Raw sources** \u2014 immutable input (articles, PDFs, transcripts)\n- **Wiki** \u2014 markdown files: entity, concept, source, synthesis pages\n- **Schema** \u2014 config that drives the LLM (this vault uses frontmatter + an internal prompt)\n\n## Three operations\n\n- **Ingest** \u2014 read source, update 10\u201315 pages with summaries and cross-references\n- **Query** \u2014 answer questions with citations\n- **Lint** \u2014 audit for contradictions, orphans, gaps\n\n## Two anchors\n\n- [[index]] \u2014 catalog\n- [[log]] \u2014 chronological record\n\n## Why flat\n\nFolders force premature classification. Tags + wikilinks let the graph emerge.",
       "updated": "2026-05-07",
       "review_state": "raw"
     },
     {
+      "id": "welcome",
+      "title": "Welcome",
+      "type": "index",
+      "tags": [
+        "meta"
+      ],
+      "sources": [],
+      "status": "curated",
+      "md": "# Welcome\n\nThis vault uses the Karpathy LLM-wiki method.\n\n## Three operations\n\n- **Ingest** \u2014 paste a URL or text. The LLM reads it, creates a Source page, drafts updates to related pages, and appends to [[log]].\n- **Query** \u2014 ask a question. The LLM reads relevant pages and answers with citations. Save useful answers as synthesis pages.\n- **Lint** \u2014 periodic audit for orphans, broken links, missing tags.\n\n## Anchor pages\n\n- [[index]] \u2014 auto-generated catalog of all pages\n- [[log]] \u2014 append-only ingest and query history\n\n## Try\n\n1. Click **\u2295 Ingest** in the top bar. Paste any text. See drafts appear.\n2. Click **? Query**. Ask \"what is in this vault?\".\n3. Open [[Karpathy LLM Wiki]] to see the method.",
+      "updated": "2026-05-07",
+      "review_state": "reviewed"
+    },
+    {
       "id": "2026-05-14-theonelanceb-april-26-top-opps",
-      "title": "2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS",
+      "title": "2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS",
       "type": "clip",
       "tags": [
         "finance-trading",
@@ -47,7 +47,7 @@
         "src-2026-05-14-theonelanceb-april-26-top-opps"
       ],
       "status": "quarantined",
-      "md": "# 2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS\n\n## Summary\n\nLance Breitstein recaps his April 2026 top opportunities, highlighting oil, CAR, and semiconductor breakouts while listing several tickers and dates.\n\n## Source\n\n<https://x.com/TheOneLanceB/status/2053869027429404879>\n\n## Body\n\nAPRIL ‘26 TOP OPPS\n\nAnother really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis. $CAR and swing longs in semis were best IMO. As always these opportunities are dissected in detail as part of my course.\n\n$USO\n$CAR\nSemis\n4/2 $SBAC\n4/6 $UNH\n4/22 $FLYYQ\n4/23 $SKLZ\n4/27 $POET\n\n## Extracted claims\n\n- [[April 2026 opportunities centered on oil, CAR, and semiconductor breakouts]]\n- [[CAR and semi swing longs were the author's best opportunities in April 2026]]\n- [[The post lists a dated watchlist of SBAC, UNH, FLYYQ, SKLZ, and POET]]\n- [[The post also functions as course promotion]]\n\n## Promotion notes\n\n- Promoted from a raw clip into extracted finance-trading claims for easier future retrieval.\n- Durable promotion is still blocked until the claims are independently reviewed.\n- This source remains the canonical raw evidence page.\n\n## Notes\n\n- Captured through the Shared Inbox and sorted by Hermes into a finance-trading quarantine page.\n- This item was re-processed into the AI Wiki Vault after an earlier mistaken discard, per user correction.\n- Review required before promoting any claim into durable concepts or workflows.\n- Original user note: Lance Top Opps \"Trading\"\n\n## Provenance\n\n- captured: 2026-05-14T02:05:12.113Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-14T02:16:43Z\n- capture id: cap-20260514T020512-wprr\n- tickers: $USO, $CAR, $SBAC, $UNH, $FLYYQ, $SKLZ, $POET\n- review required: finance keywords/tickers detected; retrospective trading commentary\n",
+      "md": "# 2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS\n\n## Summary\n\nLance Breitstein recaps his April 2026 top opportunities, highlighting oil, CAR, and semiconductor breakouts while listing several tickers and dates.\n\n## Source\n\n<https://x.com/TheOneLanceB/status/2053869027429404879>\n\n## Body\n\nAPRIL \u201826 TOP OPPS\n\nAnother really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis. $CAR and swing longs in semis were best IMO. As always these opportunities are dissected in detail as part of my course.\n\n$USO\n$CAR\nSemis\n4/2 $SBAC\n4/6 $UNH\n4/22 $FLYYQ\n4/23 $SKLZ\n4/27 $POET\n\n## Extracted claims\n\n- [[April 2026 opportunities centered on oil, CAR, and semiconductor breakouts]]\n- [[CAR and semi swing longs were the author's best opportunities in April 2026]]\n- [[The post lists a dated watchlist of SBAC, UNH, FLYYQ, SKLZ, and POET]]\n- [[The post also functions as course promotion]]\n\n## Promotion notes\n\n- Promoted from a raw clip into extracted finance-trading claims for easier future retrieval.\n- Durable promotion is still blocked until the claims are independently reviewed.\n- This source remains the canonical raw evidence page.\n\n## Notes\n\n- Captured through the Shared Inbox and sorted by Hermes into a finance-trading quarantine page.\n- This item was re-processed into the AI Wiki Vault after an earlier mistaken discard, per user correction.\n- Review required before promoting any claim into durable concepts or workflows.\n- Original user note: Lance Top Opps \"Trading\"\n\n## Provenance\n\n- captured: 2026-05-14T02:05:12.113Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-14T02:16:43Z\n- capture id: cap-20260514T020512-wprr\n- tickers: $USO, $CAR, $SBAC, $UNH, $FLYYQ, $SKLZ, $POET\n- review required: finance keywords/tickers detected; retrospective trading commentary\n",
       "updated": "2026-05-14",
       "review_state": "raw",
       "specialist": "finance-trading",
@@ -70,7 +70,7 @@
         "src-2026-05-14-theonelanceb-april-26-top-opps"
       ],
       "status": "quarantined",
-      "md": "# April 2026 opportunities centered on oil, CAR, and semiconductor breakouts\n\n## Claim\n\nThe post frames the month's main opportunities as coming from oil, $CAR, and all-time-high semiconductor breakouts.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"Another really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- This is a source-backed extracted claim, not a verified trading truth.\n- Use as a watchlist/research pointer only until independently checked.\n",
+      "md": "# April 2026 opportunities centered on oil, CAR, and semiconductor breakouts\n\n## Claim\n\nThe post frames the month's main opportunities as coming from oil, $CAR, and all-time-high semiconductor breakouts.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS]]\n- snippet: \"Another really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- This is a source-backed extracted claim, not a verified trading truth.\n- Use as a watchlist/research pointer only until independently checked.\n",
       "updated": "2026-05-14",
       "review_state": "extracted",
       "specialist": "finance-trading",
@@ -102,7 +102,7 @@
         "src-2026-05-14-theonelanceb-april-26-top-opps"
       ],
       "status": "quarantined",
-      "md": "# CAR and semi swing longs were the author's best opportunities in April 2026\n\n## Claim\n\nThe author says $CAR and swing longs in semis were the best opportunities of the month.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"$CAR and swing longs in semis were best IMO.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- Opinionated performance ranking from the source author.\n- Requires external validation before reuse in a playbook or promoted concept.\n",
+      "md": "# CAR and semi swing longs were the author's best opportunities in April 2026\n\n## Claim\n\nThe author says $CAR and swing longs in semis were the best opportunities of the month.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS]]\n- snippet: \"$CAR and swing longs in semis were best IMO.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- Opinionated performance ranking from the source author.\n- Requires external validation before reuse in a playbook or promoted concept.\n",
       "updated": "2026-05-14",
       "review_state": "extracted",
       "specialist": "finance-trading",
@@ -116,6 +116,33 @@
         "CAR"
       ],
       "freshness": "historical-monthly-recap"
+    },
+    {
+      "id": "the-post-also-functions-as-course-promotion",
+      "title": "The post also functions as course promotion",
+      "type": "claim",
+      "tags": [
+        "finance-trading",
+        "claim",
+        "promotion",
+        "x-post"
+      ],
+      "sources": [
+        "src-2026-05-14-theonelanceb-april-26-top-opps"
+      ],
+      "status": "quarantined",
+      "md": "# The post also functions as course promotion\n\n## Claim\n\nThe author says the opportunities are dissected in detail as part of his course, so the post doubles as promotional content.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS]]\n- snippet: \"As always these opportunities are dissected in detail as part of my course.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- This helps frame possible incentives and tone in the source.\n- Keep in mind when deciding whether any claim should be promoted further.\n",
+      "updated": "2026-05-14",
+      "review_state": "extracted",
+      "specialist": "finance-trading",
+      "confidence": "high",
+      "review_required": true,
+      "claim_type": "promotional",
+      "source_url": "https://x.com/TheOneLanceB/status/2053869027429404879",
+      "captured_date": "2026-05-14",
+      "provenance_snippet": "As always these opportunities are dissected in detail as part of my course.",
+      "ticker_map": [],
+      "freshness": "contextual"
     },
     {
       "id": "the-post-lists-a-dated-watchlist-of-sbac-unh-flyyq-sklz-and-poet",
@@ -132,7 +159,7 @@
         "src-2026-05-14-theonelanceb-april-26-top-opps"
       ],
       "status": "quarantined",
-      "md": "# The post lists a dated watchlist of SBAC, UNH, FLYYQ, SKLZ, and POET\n\n## Claim\n\nThe source enumerates a dated list of tickers: 4/2 $SBAC, 4/6 $UNH, 4/22 $FLYYQ, 4/23 $SKLZ, and 4/27 $POET.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"4/2 $SBAC  4/6 $UNH  4/22 $FLYYQ  4/23 $SKLZ  4/27 $POET\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- Treat as a dated reference list, not as a live thesis.\n- Freshness decays quickly because the post is retrospective and ticker-specific.\n",
+      "md": "# The post lists a dated watchlist of SBAC, UNH, FLYYQ, SKLZ, and POET\n\n## Claim\n\nThe source enumerates a dated list of tickers: 4/2 $SBAC, 4/6 $UNH, 4/22 $FLYYQ, 4/23 $SKLZ, and 4/27 $POET.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS]]\n- snippet: \"4/2 $SBAC  4/6 $UNH  4/22 $FLYYQ  4/23 $SKLZ  4/27 $POET\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- Treat as a dated reference list, not as a live thesis.\n- Freshness decays quickly because the post is retrospective and ticker-specific.\n",
       "updated": "2026-05-14",
       "review_state": "extracted",
       "specialist": "finance-trading",
@@ -152,31 +179,112 @@
       "freshness": "dated-watchlist"
     },
     {
-      "id": "the-post-also-functions-as-course-promotion",
-      "title": "The post also functions as course promotion",
-      "type": "claim",
+      "id": "2026-04-23-d-studioproject-gpt-image-2-seedance-workflow",
+      "title": "2026-04-23 D_studioproject \u2014 GPT Image 2 \u00d7 Seedance 2.0 workflow",
+      "type": "clip",
       "tags": [
-        "finance-trading",
-        "claim",
-        "promotion",
-        "x-post"
+        "ai-workflow",
+        "video-generation",
+        "prompting",
+        "x-post",
+        "commercials",
+        "design"
       ],
       "sources": [
-        "src-2026-05-14-theonelanceb-april-26-top-opps"
+        "src-2026-04-23-d-studioproject-gpt-image-2-seedance-workflow"
+      ],
+      "status": "curated",
+      "md": "# 2026-04-23 D_studioproject \u2014 GPT Image 2 \u00d7 Seedance 2.0 workflow\n\n## Summary\n\nPractical AI-ad workflow using GPT Image 2, Higgsfield, and Seedance 2.0 to animate a landing-page style commercial while keeping UI text fixed and readable.\n\n## Source\n\n<https://x.com/D_studioproject/status/2047212829430960501>\n\n## Body\n\nThread workflow:\n\nStep 1: Create a base image.\nStep 2: Inject the base image into GPT Image 2 via Higgsfield with a landing-page prompt, using high quality and 4K so embedded text stays sharp.\nStep 3: Upload the resulting image to Seedance 2.0, set resolution to 1080p, and animate it with a prompt that keeps UI elements static and readable while the subject and product move inside the frame.\n\nThe worked example is a kimchi product commercial with nearly locked camera motion, slow product rotation, premium highlights, and static on-screen UI. The post also includes a generalized prompt template for camera, background, product position, lighting, and persistent UI layout.\n\n## Notes\n\n- Captured through the Shared Inbox and sorted into an AI workflow clip page.\n- This source looked reusable enough to promote one workflow concept while keeping the clip as raw evidence.\n\n## Provenance\n\n- captured: 2026-05-16T03:48:36Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-16T03:48:36Z\n- capture id: cap-20260516T031708-1o1l",
+      "updated": "2026-05-16",
+      "review_state": "raw"
+    },
+    {
+      "id": "2026-05-15-stockmktnewz-druckenmiller-q1-2026-portfolio",
+      "title": "2026-05-15 StockMKTNewz \u2014 Druckenmiller Q1 2026 portfolio update",
+      "type": "clip",
+      "tags": [
+        "finance-trading",
+        "13f",
+        "portfolio",
+        "x-post",
+        "druckenmiller",
+        "holdings"
+      ],
+      "sources": [
+        "src-2026-05-15-stockmktnewz-druckenmiller-q1-2026-portfolio"
       ],
       "status": "quarantined",
-      "md": "# The post also functions as course promotion\n\n## Claim\n\nThe author says the opportunities are dissected in detail as part of his course, so the post doubles as promotional content.\n\n## Provenance\n\n- source: [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]]\n- snippet: \"As always these opportunities are dissected in detail as part of my course.\"\n- captured date: 2026-05-14\n\n## Review notes\n\n- This helps frame possible incentives and tone in the source.\n- Keep in mind when deciding whether any claim should be promoted further.\n",
-      "updated": "2026-05-14",
-      "review_state": "extracted",
+      "md": "# 2026-05-15 StockMKTNewz \u2014 Druckenmiller Q1 2026 portfolio update\n\n## Summary\n\nAggregator post summarizing Stanley Druckenmiller and Duquesne Family Q1 2026 holdings plus a follow-up list of new positions added during the quarter.\n\n## Source\n\n<https://x.com/StockMKTNewz/status/2055373732474953908>\n\n## Body\n\nJUST IN:\n\nStanley Druckenmiller just updated his portfolio\n\nThis is everything Duquesne Family and Stanley Druckenmiller owned as of the end of Q1\n\nNatera $NTRA: $576.7M\nTaiwan Semiconductor $TSM: $201.2M\nSTMicroelectronics $STM: $161.1M\nYPF Sociedad Anonima $YPF: $142.0M\nInsmed $INSM: $126.3M\nBrazil ETF $EWZ: $124.6M\nBBB Foods $TBBB: $113.6M\nNewAmsterdam Pharma $NAMS: $109.2M\nSea Limited $SE: $96.8M\nRoku $ROKU: $93.2M\nAlcoa $AA: $92.9M\nBroadcom $AVGO: $83.7M\nTeva Pharmaceutical $TEVA: $82.1M\nWoodward $WWD: $73.6M\nSandisk $SNDK: $54.1M\nFigure Technology $FIGR: $51.2M\nRevolution Medicines $RVMD: $46.0M\nIntel $INTC: $44.9M\nCoupang $CPNG: $43.5M\nHumana $HUM: $42.1M\nSeagate $STX: $40.6M\nCRH $CRH: $39.0M\nLattice Semiconductor $LSCC: $39.0M\nBloom Energy $BE: $38.6M\nOption Care Health $OPCH: $36.5M\nTwilio $TWLO: $36.0M\nRestaurant Brands $QSR: $34.6M\nGlobal X MSCI Argentina ETF $ARGT: $33.7M\nJabil $JBL: $28.2M\nCaris Life Sciences $CAI: $28.1M\nWabtec $WAB: $25.0M\nUnited Airlines $UAL: $24.6M\nCleveland-Cliffs $CLF: $23.8M\nArm Holdings $ARM: $22.5M\niShares GSCI Commodity $GSG: $22.0M\nSouthern Copper $SCCO: $21.7M\nLinde $LIN: $20.9M\nUnity Software $U: $20.4M\nNuvation Bio $NUVB: $20.1M\nQnity Electronics $Q: $19.8M\nMicron Technology $MU: $17.2M\nProtagonist Therapeutics $PTGX: $16.4M\nCoherent $COHR: $15.8M\nBelite Bio $BLTE: $15.2M\nOlema Pharmaceuticals $OLMA: $13.4M\nXenon Pharmaceuticals $XENE: $13.0M\nADMA Biologics $ADMA: $12.8M\nStubHub Holdings $STUB: $12.2M\nPureCycle Technologies $PCT: $12.1M\nAmazon $AMZN: $12.1M\nCelestica CLS: $12.0M\nDaktronics DAKT: $10.7M\nCloudflare NET: $10.4M\nTwist Bioscience TWST: $10.1M\nLyondellBasell LYB: $9.9M\nVista Energy VIST: $9.8M\nJBS JBS: $8.9M\nEchoStar SATS: $8.3M\nAlmonty Industries ALM: $8.2M\nDBV Technologies DBVT: $7.5M\nLumentum LITE: $6.8M\nSolstice Advanced Materials SOLS: $5.3M\nMercadoLibre MELI: $4.3M\nWestlake WLK: $1.9M\nWave Life Sciences WVE: $1.2M\n\nThread addendum: new Q1 positions included RSP equal-weight calls, AVGO, ARGT, CAI, RVMD, SNDK, HUM, TWLO, JBL, LIN, STX, INTC, ARM, NET, and MU.\n\n## Notes\n\n- Captured through the Shared Inbox and preserved as a review-required finance/trading raw clip.\n- Treat the post as source material or aggregator commentary, not independently verified truth.\n- Review is required before promoting any holdings list or thesis into durable concepts/workflows.\n\n## Provenance\n\n- captured: 2026-05-16T03:48:36Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-16T03:48:36Z\n- capture id: cap-20260516T030507-fdql",
+      "updated": "2026-05-16",
+      "review_state": "raw",
       "specialist": "finance-trading",
-      "confidence": "high",
       "review_required": true,
-      "claim_type": "promotional",
-      "source_url": "https://x.com/TheOneLanceB/status/2053869027429404879",
-      "captured_date": "2026-05-14",
-      "provenance_snippet": "As always these opportunities are dissected in detail as part of my course.",
-      "ticker_map": [],
-      "freshness": "contextual"
+      "batch": "b-shared-inbox-20260516"
+    },
+    {
+      "id": "2026-05-15-burrytracker-renaissance-q1-2026-13f",
+      "title": "2026-05-15 burrytracker \u2014 Renaissance Q1 2026 13F changes",
+      "type": "clip",
+      "tags": [
+        "finance-trading",
+        "13f",
+        "portfolio",
+        "x-post",
+        "renaissance",
+        "jim-simons"
+      ],
+      "sources": [
+        "src-2026-05-15-burrytracker-renaissance-q1-2026-13f"
+      ],
+      "status": "quarantined",
+      "md": "# 2026-05-15 burrytracker \u2014 Renaissance Q1 2026 13F changes\n\n## Summary\n\nAggregator post summarizing Renaissance Technologies Q1 2026 13F top buys and sells, plus comment-thread caveats about stale or incomplete interpretability.\n\n## Source\n\n<https://x.com/burrytracker/status/2055294409801974204>\n\n## Body\n\nRenaissance Technologies (founded by Jim Simons) just dropped their Q1 2026 13F\n\nCurrently a $63.9B portfolio with 3,213 positions\n\nHere's what changed:\n\nTop Buys (approx):\n\u2022 Apple $AAPL: +$781M\n\u2022 Nvidia $NVDA: +$278M\n\u2022 Linde $LIN: +$258M\n\u2022 Broadcom $AVGO: +$245M\n\u2022 Alamos Gold $AGI: +$227M\n\u2022 JPMorgan $JPM: +$202M\n\nTop Sells (approx):\n\u2022 Netflix $NFLX: -$673M\n\u2022 Palantir $PLTR: -$542M\n\u2022 Tesla $TSLA: -$534M\n\u2022 Procter and Gamble $PG: -$428M\n\u2022 Costco $COST: -$578M\n\u2022 Microsoft $MSFT: -$329M\n\nLooks like they're rotating into big tech, energy, and gold while cutting consumer names and momentum plays\n\nThread addendum: link to a portfolio/performance app. Top comments note Jim Simons is deceased and that a 13F may not reflect the current Medallion book.\n\n## Notes\n\n- Captured through the Shared Inbox and preserved as a review-required finance/trading raw clip.\n- Treat the post as source material or aggregator commentary, not independently verified truth.\n- Review is required before promoting any holdings list or thesis into durable concepts/workflows.\n\n## Provenance\n\n- captured: 2026-05-16T03:48:36Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-16T03:48:36Z\n- capture id: cap-20260516T030737-ctn5",
+      "updated": "2026-05-16",
+      "review_state": "raw",
+      "specialist": "finance-trading",
+      "review_required": true,
+      "batch": "b-shared-inbox-20260516"
+    },
+    {
+      "id": "2026-05-15-wallstengine-nvda-13f-holdings",
+      "title": "2026-05-15 wallstengine \u2014 NVDA 13F holdings snapshot",
+      "type": "clip",
+      "tags": [
+        "finance-trading",
+        "13f",
+        "x-post",
+        "nvda",
+        "holdings",
+        "semis"
+      ],
+      "sources": [
+        "src-2026-05-15-wallstengine-nvda-13f-holdings"
+      ],
+      "status": "quarantined",
+      "md": "# 2026-05-15 wallstengine \u2014 NVDA 13F holdings snapshot\n\n## Summary\n\nShort Wall St Engine post listing the public-equity names attributed to Nvidia\u2019s 13F holdings snapshot.\n\n## Source\n\n<https://x.com/wallstengine/status/2055383424551256165>\n\n## Body\n\nNVDA 13F Holdings:\n\nCOHR\nCRWV\nGENB\nINTC\nNBIS\nNOK\nSNPS\n\nTop comments frame the post as a tiny strategic basket relative to Nvidia's overall size and suggest it may not represent a major new thesis.\n\n## Notes\n\n- Captured through the Shared Inbox and preserved as a review-required finance/trading raw clip.\n- Treat the post as source material or aggregator commentary, not independently verified truth.\n- Review is required before promoting any holdings list or thesis into durable concepts/workflows.\n\n## Provenance\n\n- captured: 2026-05-16T03:48:36Z\n- claimed by: hermes-mac-mini-2026\n- processed: 2026-05-16T03:48:36Z\n- capture id: cap-20260516T030833-y0er",
+      "updated": "2026-05-16",
+      "review_state": "raw",
+      "specialist": "finance-trading",
+      "review_required": true,
+      "batch": "b-shared-inbox-20260516"
+    },
+    {
+      "id": "gpt-image-2-seedance-static-ui-commercial-workflow",
+      "title": "GPT Image 2 + Seedance static-UI commercial workflow",
+      "type": "concept",
+      "tags": [
+        "ai-workflow",
+        "video-generation",
+        "prompting",
+        "commercials",
+        "design"
+      ],
+      "sources": [
+        "src-2026-04-23-d-studioproject-gpt-image-2-seedance-workflow"
+      ],
+      "status": "curated",
+      "updated": "2026-05-16",
+      "review_state": "reviewed",
+      "md": "# GPT Image 2 + Seedance static-UI commercial workflow\n\n## Summary\n\nA practical workflow for turning a still landing-page composition into a motion commercial while keeping all interface text static, visible, and readable.\n\n## Workflow\n\n1. Generate a base still image for the product/scene.\n2. Use GPT Image 2 through Higgsfield to restyle the composition while preserving the page layout and color treatment.\n3. Send the image to Seedance 2.0 at 1080p so text remains sharp.\n4. Animate only the in-frame subject/product motion while keeping the UI container fixed.\n\n## Key idea\n\nThe design acts as a static container and the motion lives inside it. This lets a landing-page or ad mockup become a cinematic short without sacrificing text readability.\n\n## Prompting notes\n\n- Keep camera movement minimal or locked.\n- Specify product rotation, highlight behavior, and ambient detail explicitly.\n- Call out that logos, nav bars, CTA buttons, hero text, badges, and product cards must remain static and legible through the whole shot.\n\n## Source\n\n- [[2026-04-23 D_studioproject \u2014 GPT Image 2 \u00d7 Seedance 2.0 workflow]]"
     }
   ],
   "sources": [
@@ -191,12 +299,48 @@
     },
     {
       "id": "src-2026-05-14-theonelanceb-april-26-top-opps",
-      "title": "2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS",
+      "title": "2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS",
       "url": "https://x.com/TheOneLanceB/status/2053869027429404879",
-      "raw": "APRIL ‘26 TOP OPPS\n\nAnother really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis. $CAR and swing longs in semis were best IMO. As always these opportunities are dissected in detail as part of my course.\n\n$USO\n$CAR\nSemis\n4/2 $SBAC\n4/6 $UNH\n4/22 $FLYYQ\n4/23 $SKLZ\n4/27 $POET",
+      "raw": "APRIL \u201826 TOP OPPS\n\nAnother really active month with huge opportunities across oil, $CAR, and the all-time high breakouts in semis. $CAR and swing longs in semis were best IMO. As always these opportunities are dissected in detail as part of my course.\n\n$USO\n$CAR\nSemis\n4/2 $SBAC\n4/6 $UNH\n4/22 $FLYYQ\n4/23 $SKLZ\n4/27 $POET",
       "summary": "Lance Breitstein recaps his April 2026 top opportunities, highlighting oil, CAR, and semiconductor breakouts while listing several tickers and dates.",
       "type": "url",
       "ingested": "2026-05-14T02:16:43Z"
+    },
+    {
+      "id": "src-2026-04-23-d-studioproject-gpt-image-2-seedance-workflow",
+      "title": "2026-04-23 D_studioproject \u2014 GPT Image 2 \u00d7 Seedance 2.0 workflow",
+      "url": "https://x.com/D_studioproject/status/2047212829430960501",
+      "raw": "Thread workflow:\n\nStep 1: Create a base image.\nStep 2: Inject the base image into GPT Image 2 via Higgsfield with a landing-page prompt, using high quality and 4K so embedded text stays sharp.\nStep 3: Upload the resulting image to Seedance 2.0, set resolution to 1080p, and animate it with a prompt that keeps UI elements static and readable while the subject and product move inside the frame.\n\nThe worked example is a kimchi product commercial with nearly locked camera motion, slow product rotation, premium highlights, and static on-screen UI. The post also includes a generalized prompt template for camera, background, product position, lighting, and persistent UI layout.",
+      "summary": "Practical AI-ad workflow using GPT Image 2, Higgsfield, and Seedance 2.0 to animate a landing-page style commercial while keeping UI text fixed and readable.",
+      "type": "url",
+      "ingested": "2026-05-16T03:48:36Z"
+    },
+    {
+      "id": "src-2026-05-15-stockmktnewz-druckenmiller-q1-2026-portfolio",
+      "title": "2026-05-15 StockMKTNewz \u2014 Druckenmiller Q1 2026 portfolio update",
+      "url": "https://x.com/StockMKTNewz/status/2055373732474953908",
+      "raw": "JUST IN:\n\nStanley Druckenmiller just updated his portfolio\n\nThis is everything Duquesne Family and Stanley Druckenmiller owned as of the end of Q1\n\nNatera $NTRA: $576.7M\nTaiwan Semiconductor $TSM: $201.2M\nSTMicroelectronics $STM: $161.1M\nYPF Sociedad Anonima $YPF: $142.0M\nInsmed $INSM: $126.3M\nBrazil ETF $EWZ: $124.6M\nBBB Foods $TBBB: $113.6M\nNewAmsterdam Pharma $NAMS: $109.2M\nSea Limited $SE: $96.8M\nRoku $ROKU: $93.2M\nAlcoa $AA: $92.9M\nBroadcom $AVGO: $83.7M\nTeva Pharmaceutical $TEVA: $82.1M\nWoodward $WWD: $73.6M\nSandisk $SNDK: $54.1M\nFigure Technology $FIGR: $51.2M\nRevolution Medicines $RVMD: $46.0M\nIntel $INTC: $44.9M\nCoupang $CPNG: $43.5M\nHumana $HUM: $42.1M\nSeagate $STX: $40.6M\nCRH $CRH: $39.0M\nLattice Semiconductor $LSCC: $39.0M\nBloom Energy $BE: $38.6M\nOption Care Health $OPCH: $36.5M\nTwilio $TWLO: $36.0M\nRestaurant Brands $QSR: $34.6M\nGlobal X MSCI Argentina ETF $ARGT: $33.7M\nJabil $JBL: $28.2M\nCaris Life Sciences $CAI: $28.1M\nWabtec $WAB: $25.0M\nUnited Airlines $UAL: $24.6M\nCleveland-Cliffs $CLF: $23.8M\nArm Holdings $ARM: $22.5M\niShares GSCI Commodity $GSG: $22.0M\nSouthern Copper $SCCO: $21.7M\nLinde $LIN: $20.9M\nUnity Software $U: $20.4M\nNuvation Bio $NUVB: $20.1M\nQnity Electronics $Q: $19.8M\nMicron Technology $MU: $17.2M\nProtagonist Therapeutics $PTGX: $16.4M\nCoherent $COHR: $15.8M\nBelite Bio $BLTE: $15.2M\nOlema Pharmaceuticals $OLMA: $13.4M\nXenon Pharmaceuticals $XENE: $13.0M\nADMA Biologics $ADMA: $12.8M\nStubHub Holdings $STUB: $12.2M\nPureCycle Technologies $PCT: $12.1M\nAmazon $AMZN: $12.1M\nCelestica CLS: $12.0M\nDaktronics DAKT: $10.7M\nCloudflare NET: $10.4M\nTwist Bioscience TWST: $10.1M\nLyondellBasell LYB: $9.9M\nVista Energy VIST: $9.8M\nJBS JBS: $8.9M\nEchoStar SATS: $8.3M\nAlmonty Industries ALM: $8.2M\nDBV Technologies DBVT: $7.5M\nLumentum LITE: $6.8M\nSolstice Advanced Materials SOLS: $5.3M\nMercadoLibre MELI: $4.3M\nWestlake WLK: $1.9M\nWave Life Sciences WVE: $1.2M\n\nThread addendum: new Q1 positions included RSP equal-weight calls, AVGO, ARGT, CAI, RVMD, SNDK, HUM, TWLO, JBL, LIN, STX, INTC, ARM, NET, and MU.",
+      "summary": "Aggregator post summarizing Stanley Druckenmiller and Duquesne Family Q1 2026 holdings plus a follow-up list of new positions added during the quarter.",
+      "type": "url",
+      "ingested": "2026-05-16T03:48:36Z"
+    },
+    {
+      "id": "src-2026-05-15-burrytracker-renaissance-q1-2026-13f",
+      "title": "2026-05-15 burrytracker \u2014 Renaissance Q1 2026 13F changes",
+      "url": "https://x.com/burrytracker/status/2055294409801974204",
+      "raw": "Renaissance Technologies (founded by Jim Simons) just dropped their Q1 2026 13F\n\nCurrently a $63.9B portfolio with 3,213 positions\n\nHere's what changed:\n\nTop Buys (approx):\n\u2022 Apple $AAPL: +$781M\n\u2022 Nvidia $NVDA: +$278M\n\u2022 Linde $LIN: +$258M\n\u2022 Broadcom $AVGO: +$245M\n\u2022 Alamos Gold $AGI: +$227M\n\u2022 JPMorgan $JPM: +$202M\n\nTop Sells (approx):\n\u2022 Netflix $NFLX: -$673M\n\u2022 Palantir $PLTR: -$542M\n\u2022 Tesla $TSLA: -$534M\n\u2022 Procter and Gamble $PG: -$428M\n\u2022 Costco $COST: -$578M\n\u2022 Microsoft $MSFT: -$329M\n\nLooks like they're rotating into big tech, energy, and gold while cutting consumer names and momentum plays\n\nThread addendum: link to a portfolio/performance app. Top comments note Jim Simons is deceased and that a 13F may not reflect the current Medallion book.",
+      "summary": "Aggregator post summarizing Renaissance Technologies Q1 2026 13F top buys and sells, plus comment-thread caveats about stale or incomplete interpretability.",
+      "type": "url",
+      "ingested": "2026-05-16T03:48:36Z"
+    },
+    {
+      "id": "src-2026-05-15-wallstengine-nvda-13f-holdings",
+      "title": "2026-05-15 wallstengine \u2014 NVDA 13F holdings snapshot",
+      "url": "https://x.com/wallstengine/status/2055383424551256165",
+      "raw": "NVDA 13F Holdings:\n\nCOHR\nCRWV\nGENB\nINTC\nNBIS\nNOK\nSNPS\n\nTop comments frame the post as a tiny strategic basket relative to Nvidia's overall size and suggest it may not represent a major new thesis.",
+      "summary": "Short Wall St Engine post listing the public-equity names attributed to Nvidia\u2019s 13F holdings snapshot.",
+      "type": "url",
+      "ingested": "2026-05-16T03:48:36Z"
     }
   ],
   "drafts": [
@@ -234,7 +378,7 @@
     {
       "ts": "2026-05-06T09:32:11.352Z",
       "op": "lint",
-      "summary": "1 issue → drafts"
+      "summary": "1 issue \u2192 drafts"
     },
     {
       "ts": "2026-05-06T13:00:21.737Z",
@@ -249,32 +393,32 @@
     {
       "ts": "2026-05-11T08:43:44.079Z",
       "op": "lint",
-      "summary": "1 issue → drafts"
+      "summary": "1 issue \u2192 drafts"
     },
     {
       "ts": "2026-05-11T08:44:43.631Z",
       "op": "lint",
-      "summary": "1 issue → drafts"
+      "summary": "1 issue \u2192 drafts"
     },
     {
       "ts": "2026-05-11T08:53:25.253Z",
       "op": "ingest",
-      "summary": "Committed [[2026-05-11 TheShortBear — x.com/TheShortBear/status/2010243246065164355?s=20]] via commit"
+      "summary": "Committed [[2026-05-11 TheShortBear \u2014 x.com/TheShortBear/status/2010243246065164355?s=20]] via commit"
     },
     {
       "ts": "2026-05-11T17:04:27.217Z",
       "op": "delete",
-      "summary": "Deleted \"2026-05-11 TheShortBear — x.com/TheShortBear/status/2010243246065164355?s=20\" · +1 stub · +1 source"
+      "summary": "Deleted \"2026-05-11 TheShortBear \u2014 x.com/TheShortBear/status/2010243246065164355?s=20\" \u00b7 +1 stub \u00b7 +1 source"
     },
     {
       "ts": "2026-05-14T02:16:43Z",
       "op": "ingest",
-      "summary": "Committed [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]] (review required) via dated_source_only [Hermes shared inbox]"
+      "summary": "Committed [[2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS]] (review required) via dated_source_only [Hermes shared inbox]"
     },
     {
       "ts": "2026-05-14T02:29:08Z",
       "op": "promote",
-      "summary": "Promoted [[2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS]] into extracted finance-trading claims [Hermes]"
+      "summary": "Promoted [[2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS]] into extracted finance-trading claims [Hermes]"
     }
   ],
   "ui": {
@@ -289,7 +433,7 @@
       "ts": "2026-05-14T02:16:43Z",
       "op": "ingest",
       "sourceId": "src-2026-05-14-theonelanceb-april-26-top-opps",
-      "sourceTitle": "2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS",
+      "sourceTitle": "2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS",
       "provider": "hermes-shared-inbox",
       "created": [
         "2026-05-14-theonelanceb-april-26-top-opps"
@@ -301,7 +445,7 @@
       "ts": "2026-05-14T02:29:08Z",
       "op": "promote",
       "sourceId": "src-2026-05-14-theonelanceb-april-26-top-opps",
-      "sourceTitle": "2026-05-14 TheOneLanceB — APRIL ‘26 TOP OPPS",
+      "sourceTitle": "2026-05-14 TheOneLanceB \u2014 APRIL \u201826 TOP OPPS",
       "provider": "hermes-manual-promotion",
       "created": [
         "april-2026-opportunities-centered-on-oil-car-and-semis-breakouts",
@@ -324,7 +468,7 @@
     "last_synced_at": "2026-05-14T02:22:00.540Z",
     "sync_status": "synced"
   },
-  "revision": 1,
+  "revision": 2,
   "device_id": "mac-3ftipo4z",
   "inbox": {
     "last_etag": null,

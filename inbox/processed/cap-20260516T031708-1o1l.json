@@ -9,9 +9,12 @@
   "source_hint": "",
   "user_note": "AI workflow for commercial/advertising",
   "input_hash": "wje1fe",
-  "claimed_by": null,
-  "claimed_at": null,
-  "processed_at": null,
-  "draft_refs": [],
+  "claimed_by": "hermes-mac-mini-2026",
+  "claimed_at": "2026-05-16T03:48:36Z",
+  "processed_at": "2026-05-16T03:48:36Z",
+  "draft_refs": [
+    "2026-04-23-d-studioproject-gpt-image-2-seedance-workflow",
+    "gpt-image-2-seedance-static-ui-commercial-workflow"
+  ],
   "discard_reason": null
 }
