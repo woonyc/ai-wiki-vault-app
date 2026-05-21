@@ -27,7 +27,7 @@ Persistence is `localStorage` (keys still `vault-v4-*` for backward compatibilit
 | `2026-05-11-ai-wiki-vault-v5.html` | v5 — atoms/contexts + Obsidian graph panel + review-state. Reference until v5.1 stabilizes. |
 | `2026-05-12-ai-wiki-vault-v5.1.html` | v5.1 — Workflow Rework: Temp Inbox / Prepare / Review Gate / transactional Commit / manual sync gate. |
 | `2026-05-13-ai-wiki-vault-v5.2.html` | **Current.** v5.1 + Shared Sandbox (Layer 0): cross-device intake via GitHub `inbox/` folder, atomic claim/process/discard, Hermes protocol. |
-| `index.html` | Site entry file currently served at the custom domain. Still serving v4 until you explicitly promote v5.2 into it. |
+| `index.html` | Site entry file currently served at the custom domain. It should mirror the currently promoted live app build for `vault.woon-yc.com`. |
 
 Earlier specs (`AI_Wiki_Vault_Product_Spec.md`) describe a pre-v4 model with compartments, review queue, claims, contradictions — **partially superseded**. Check `CHANGELOG.md` for what was killed and why.
 
