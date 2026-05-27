@@ -1,0 +1,17 @@
+{
+  "capture_id": "cap-20260527T092425-wc6m",
+  "schema_version": 1,
+  "device_id": "pc-87jukut0",
+  "captured_at": "2026-05-27T09:24:25.402Z",
+  "input_type": "url",
+  "raw_input": "https://x.com/DamiDefi/status/2059266442957058414?s=20",
+  "source_url": "https://x.com/DamiDefi/status/2059266442957058414?s=20",
+  "source_hint": "Crypto-Research-AI",
+  "user_note": "",
+  "input_hash": "1i79qml",
+  "claimed_by": null,
+  "claimed_at": null,
+  "processed_at": null,
+  "draft_refs": [],
+  "discard_reason": null
+}
